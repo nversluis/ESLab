@@ -73,7 +73,7 @@ int main(void)
 	imu_init(true, 100);	
 	baro_init();
 	spi_flash_init();
-	ble_init();
+	//ble_init();
 
 	uint32_t counter = 0;
 	demo_done = false;
