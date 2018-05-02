@@ -91,6 +91,12 @@ void rs232_open(void)
   	struct termios	tty;
 
        	fd_RS232 = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);  // Hardcode your serial port here, or request it as an argument at runtime
+	
+	if(fd_RS232 == -1){
+		term_puts("Opening /dev/ttyUSB0 failed.\n");
+	}else{
+		term_puts("Opening /dev/ttyUSB0 worked?\n");
+	}
 
 	assert(fd_RS232>=0);
 

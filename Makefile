@@ -220,15 +220,16 @@ cleanobj:
 	$(RM) $(BUILD_DIRECTORIES)/*.o
 
 upload: default
-	python ./dfu_serial/serial_dfu.py -p COM3 _build/in4073.bin
+	sudo python ./dfu_serial/serial_dfu.py -p /dev/ttyUSB0 _build/in4073.bin
 
 pc: 
-	#cd pc_terminal/; make
+	cd pc_terminal/; make
 
 pc-run: 
-	#cd pc_terminal/; make run
+	cd pc_terminal/; make run
 	
 upload-run: default pc
-	python ./dfu_serial/serial_dfu.py -p COM3 _build/in4073.bin
-	#cd pc_terminal/; make run
-	cmd //C "C:\Program Files\PuTTY\putty.exe" -load "ESL"
+	sudo python ./dfu_serial/serial_dfu.py -p /dev/ttyUSB0 _build/in4073.bin
+	#sleep 1
+	cd pc_terminal/; make run
+	#cmd //C "C:\Program Files\PuTTY\putty.exe" -load "ESL"
