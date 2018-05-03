@@ -14,54 +14,119 @@
  */
 
 #include "in4073.h"
+#include <stdbool.h>
 
-void on_startup(){
+#define MAX_PACKET_SIZE 10
 
+uint8_t inPacketState = 0;
+uint8_t headerByte = 0x00;
+uint8_t totalBytesToRead = 0;
+uint8_t inPacketBuffer[MAX_PACKET_SIZE];
+uint8_t inPacketBufSize = 0;
+
+/*------------------------------------------------------------------
+ * process_packet -- process incoming packets
+ * Mark Röling
+ *------------------------------------------------------------------
+ */
+void process_packet(){
+	bool CRCIsValid = true; // Set this to default false when CRC is actually implemented
+	uint8_t readByte = 0;
+	uint8_t headerFound = false;
+
+	if(rx_queue.count){
+		readByte = dequeue(&rx_queue);
+		switch(inPacketState){
+			case 0:
+				// Check if it's a header byte
+				if(readByte == 'H'){ // For now only just use a testing one 0x77
+					headerByte = readByte;
+					totalBytesToRead = 8;
+					headerFound = true;
+				}
+				if(readByte == 0x77){ // For now only just use a testing one 0x77
+					headerByte = readByte;
+					totalBytesToRead = 2;
+					headerFound = true;
+				}
+
+				if(headerFound == true){
+					inPacketBufSize = 0;
+					inPacketState = 1;
+					printf("Header byte found: %c\n", headerByte);
+				}
+				break;
+			case 1:
+				inPacketBuffer[inPacketBufSize++] = readByte;
+				printf("Data byte found: %c\n", readByte);
+				if(inPacketBufSize >= totalBytesToRead){
+					inPacketState = 2;
+					printf("Total databytes read: %d\n", inPacketBufSize);
+				}else{
+					break;
+				}
+			case 2:
+				// Calculate/validate CRC
+				if(CRCIsValid == true){
+					printf("CRC is valid (unused for now)\n");
+					//Use values
+					//For now just return the packet
+					printf("Packet: ");
+					printf("%c", headerByte);
+					for(uint8_t i=0; i<inPacketBufSize; i++){
+						printf("%c", inPacketBuffer[i]);
+					}
+					printf("\n");
+				}
+				inPacketState = 0;
+				break;
+		}
+	}
 }
 
 /*------------------------------------------------------------------
  * process_key -- process command keys
  *------------------------------------------------------------------
  */
-//void process_key(uint8_t c)
-//{
-//	switch (c)
-//	{
-//		case 'q':
-//			ae[0] += 10;
-//			break;
-//		case 'a':
-//			ae[0] -= 10;
-//			if (ae[0] < 0) ae[0] = 0;
-//			break;
-//		case 'w':
-//			ae[1] += 10;
-//			break;
-//		case 's':
-//			ae[1] -= 10;
-//			if (ae[1] < 0) ae[1] = 0;
-//			break;
-//		case 'e':
-//			ae[2] += 10;
-//			break;
-//		case 'd':
-//			ae[2] -= 10;
-//			if (ae[2] < 0) ae[2] = 0;
-//			break;
-//		case 'r':
-//			ae[3] += 10;
-//			break;
-//		case 'f':
-//			ae[3] -= 10;
-//			if (ae[3] < 0) ae[3] = 0;
-//			break;
-//		case 27:
-//			demo_done = true;
-//			break;
-//		default:
-//			nrf_gpio_pin_toggle(RED);
-//	}
-//}
+void process_key(uint8_t c)
+{
+	switch (c)
+	{
+		case 'q':
+			ae[0] += 10;
+			break;
+		case 'a':
+			ae[0] -= 10;
+			if (ae[0] < 0) ae[0] = 0;
+			break;
+		case 'w':
+			ae[1] += 10;
+			break;
+		case 's':
+			ae[1] -= 10;
+			if (ae[1] < 0) ae[1] = 0;
+			break;
+		case 'e':
+			ae[2] += 10;
+			break;
+		case 'd':
+			ae[2] -= 10;
+			if (ae[2] < 0) ae[2] = 0;
+			break;
+		case 'r':
+			ae[3] += 10;
+			break;
+		case 'f':
+			ae[3] -= 10;
+			if (ae[3] < 0) ae[3] = 0;
+			break;
+		case 27:
+			demo_done = true;
+			break;
+		default:
+			nrf_gpio_pin_toggle(RED);
+	}
+}
 
 /*------------------------------------------------------------------
  * main -- everything you need is here :)
@@ -84,8 +149,9 @@ int main(void)
 //	uint32_t counter = 0;
 //	demo_done = false;
 //
-//	while (!demo_done)
-//	{
+	while (!demo_done)
+	{
+		process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
 //
 //		if (check_timer_flag()) 
@@ -109,7 +175,7 @@ int main(void)
 //			get_dmp_data();
 //			run_filters_and_control();
 //		}
-//	}	
+	}	
 
 	printf("\n\t Goodbye \n\n");
 	nrf_delay_ms(100);
