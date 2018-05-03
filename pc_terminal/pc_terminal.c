@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <inttypes.h>
+#include "protocol.h"
 
 /*------------------------------------------------------------
  * console I/O
@@ -91,12 +92,6 @@ void rs232_open(void)
   	struct termios	tty;
 
        	fd_RS232 = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);  // Hardcode your serial port here, or request it as an argument at runtime
-	
-	if(fd_RS232 == -1){
-		term_puts("Opening /dev/ttyUSB0 failed.\n");
-	}else{
-		term_puts("Opening /dev/ttyUSB0 worked?\n");
-	}
 
 	assert(fd_RS232>=0);
 
@@ -182,11 +177,14 @@ int 	rs232_putchar(char c)
 
 /*----------------------------------------------------------------
  * main -- execute terminal
+ * 
+ * Mods: Himanshu Shah
+ * Date: 03/05/18
  *----------------------------------------------------------------
  */
 int main(int argc, char **argv)
 {
-	char	c;
+	char	c,c2;
 
 	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
 
@@ -204,11 +202,27 @@ int main(int argc, char **argv)
 	 */
 	for (;;)
 	{
-		if ((c = term_getchar_nb()) != -1)
-			rs232_putchar(c);
-
-		if ((c = rs232_getchar_nb()) != -1)
-			term_putchar(c);
+		if ((c = term_getchar_nb()) != -1){
+			if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
+				if((c2 = term_getchar_nb()) == -1){
+					struct packet p_obj;
+					p_obj.header=MODE;
+					p_obj.data=ABORT;
+					//TODO: compute crc and add to packet
+					p_obj.crc8=0x00;
+					//TODO: implement queue to send packets
+					rs232_putchar(p_obj.header);
+					rs232_putchar(p_obj.data);
+					rs232_putchar(p_obj.crc8);
+				}
+			}
+			else{
+				detect_term_input(c);
+			}
+		}
+			
+		//if ((c = rs232_getchar_nb()) != -1)
+		//	term_putchar(c);
 
 	}
 
