@@ -13,6 +13,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "protocol.h"
+void detect_term_input(char);
 
 /*------------------------------------------------------------
  * console I/O
