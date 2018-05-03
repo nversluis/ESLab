@@ -15,6 +15,7 @@
 
 #include "in4073.h"
 #include <stdbool.h>
+#include "pc_terminal/protocol.h"
 
 #define MAX_PACKET_SIZE 10
 
@@ -29,40 +30,72 @@ uint8_t inPacketBufSize = 0;
  * Mark Röling
  *------------------------------------------------------------------
  */
+
+//Todo: change the headerFound to a goto to reduce cpu cycles
 void process_packet(){
 	bool CRCIsValid = true; // Set this to default false when CRC is actually implemented
 	uint8_t readByte = 0;
 	uint8_t headerFound = false;
 
-	if(rx_queue.count){
+	if(rx_queue.count > 0){
 		readByte = dequeue(&rx_queue);
+		//printf("Readbyte: 0x%02X\n", readByte);
 		switch(inPacketState){
 			case 0:
 				// Check if it's a header byte
-				if(readByte == 'H'){ // For now only just use a testing one 0x77
+				if(readByte == 'h'){ // Test packet
 					headerByte = readByte;
 					totalBytesToRead = 8;
 					headerFound = true;
 				}
-				if(readByte == 0x77){ // For now only just use a testing one 0x77
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_PITCH){
+					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
+					headerFound = true;
+				}
+				if(readByte == BAT){
+					// 2 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 3;
+					headerFound = true;
+				}
+				if(readByte == SYSTIME || readByte == PRESSURE){
+					// 4 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 5;
+					headerFound = true;
+				}
+				if(readByte == J_CONTROL || readByte == J_CONTROL){
+					// 6 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 7;
+					headerFound = true;
+				}
+				if(readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
+					// 8 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 9;
 					headerFound = true;
 				}
 
 				if(headerFound == true){
 					inPacketBufSize = 0;
 					inPacketState = 1;
-					printf("Header byte found: %c\n", headerByte);
+					printf("Header byte found: 0x%02X\n", headerByte);
+				}else{
+					printf("Non-header found:  0x%02X\n", readByte);
 				}
 				break;
 			case 1:
 				inPacketBuffer[inPacketBufSize++] = readByte;
-				printf("Data byte found: %c\n", readByte);
+				
 				if(inPacketBufSize >= totalBytesToRead){
 					inPacketState = 2;
-					printf("Total databytes read: %d\n", inPacketBufSize);
+					printf("CRC byte found:    0x%02X\n", readByte);
+					printf("Total data bytes read: %d\n", inPacketBufSize-1);
 				}else{
+					printf("Data byte found:   0x%02X\n", readByte);
 					break;
 				}
 			case 2:
@@ -72,15 +105,18 @@ void process_packet(){
 					//Use values
 					//For now just return the packet
 					printf("Packet: ");
-					printf("%c", headerByte);
+					printf("0x%02X ", headerByte);
 					for(uint8_t i=0; i<inPacketBufSize; i++){
-						printf("%c", inPacketBuffer[i]);
+						printf("0x%02X ", inPacketBuffer[i]);
 					}
 					printf("\n");
 				}
 				inPacketState = 0;
 				break;
 		}
+	}else{
+		//printf("No byte found.\n");
+		//nrf_delay_ms(1);
 	}
 }
 
@@ -146,17 +182,18 @@ int main(void)
 
 
 
-//	uint32_t counter = 0;
-//	demo_done = false;
-//
+	uint32_t counter = 0;
+	demo_done = false;
+
 	while (!demo_done)
 	{
+		
 		process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
 //
-//		if (check_timer_flag()) 
-//		{
-//			if (counter++%20 == 0) nrf_gpio_pin_toggle(BLUE);
+		if (check_timer_flag()) 
+		{
+			if (counter++%20 == 0) nrf_gpio_pin_toggle(BLUE);
 //
 //			adc_request_sample();
 //			read_baro();
@@ -168,13 +205,13 @@ int main(void)
 //			printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
 //
 //			clear_timer_flag();
-//		}
+		}
 //
-//		if (check_sensor_int_flag()) 
-//		{
-//			get_dmp_data();
-//			run_filters_and_control();
-//		}
+		if (check_sensor_int_flag()) 
+		{
+			get_dmp_data();
+			run_filters_and_control();
+		}
 	}	
 
 	printf("\n\t Goodbye \n\n");

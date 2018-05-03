@@ -13,7 +13,114 @@
 #include <string.h>
 #include <inttypes.h>
 #include "protocol.h"
-void detect_term_input(char);
+
+int rs232_putchar(char c);
+
+void detect_term_input(char c){
+
+    struct packet p_obj;
+    int data_detected=0;
+
+    switch(c)
+    {
+        case '0':
+                 p_obj.header=MODESET;
+                 p_obj.data=SAFE;
+                 data_detected=1;
+                 break;
+        case '1':
+                 p_obj.header=MODESET;
+                 p_obj.data=PANIC;
+                 data_detected=1;
+                 break;
+        case '2': 
+                 p_obj.header=MODESET;
+                 p_obj.data=MANUAL;
+                 data_detected=1;
+                 break;
+        case '3':
+                 p_obj.header=MODESET;
+                 p_obj.data=CALIBRATION;
+                 data_detected=1;
+                 break;
+        case '4':
+                 p_obj.header=MODESET;
+                 p_obj.data=YAWCONTROL;
+                 data_detected=1;
+                 break;
+        case '5':
+                 p_obj.header=MODESET;
+                 p_obj.data=FULLCONTROL;
+                 data_detected=1;
+                 break;
+        case '6':
+                 p_obj.header=MODESET;
+                 p_obj.data=RAW;
+                 data_detected=1;
+                 break;
+        case '7':
+                 p_obj.header=MODESET;
+                 p_obj.data=HEIGHT;
+                 data_detected=1;
+                 break;
+        case '8':
+                 p_obj.header=MODESET;
+                 p_obj.data=WIRELESS;
+                 data_detected=1;
+                 break;
+        case 'a':
+                 p_obj.header=K_LIFT;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'z':
+                 p_obj.header=K_LIFT;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
+        case 'q':
+                 p_obj.header=K_YAW;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
+        case 'w':
+                 p_obj.header=K_YAW;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'A':
+                 p_obj.header=K_PITCH;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
+        case 'B':
+                 p_obj.header=K_PITCH;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'C':
+                 p_obj.header=K_ROLL;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'D':
+                 p_obj.header=K_ROLL;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
+        default: 
+                break;
+    }
+    if(data_detected == 1){
+        //TODO: compute CRC and put in packet
+        p_obj.crc8=0x00;
+        //TODO: crude method, make use of rs232 queue instead of this 
+        rs232_putchar(p_obj.header);
+        rs232_putchar(p_obj.data);
+        rs232_putchar(p_obj.crc8);
+    }
+
+}
 
 /*------------------------------------------------------------
  * console I/O
@@ -185,7 +292,8 @@ int 	rs232_putchar(char c)
  */
 int main(int argc, char **argv)
 {
-	char	c,c2;
+	char	c;
+	char c2;
 
 	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
 
@@ -203,11 +311,14 @@ int main(int argc, char **argv)
 	 */
 	for (;;)
 	{
+		
 		if ((c = term_getchar_nb()) != -1){
+			//rs232_putchar(c);
+			
 			if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
 				if((c2 = term_getchar_nb()) == -1){
 					struct packet p_obj;
-					p_obj.header=MODE;
+					p_obj.header=MODESET;
 					p_obj.data=ABORT;
 					//TODO: compute crc and add to packet
 					p_obj.crc8=0x00;
@@ -222,8 +333,8 @@ int main(int argc, char **argv)
 			}
 		}
 			
-		//if ((c = rs232_getchar_nb()) != -1)
-		//	term_putchar(c);
+		if ((c = rs232_getchar_nb()) != -1)
+			term_putchar(c);
 
 	}
 

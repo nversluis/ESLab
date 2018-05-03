@@ -17,47 +17,47 @@ void detect_term_input(char c){
     switch(c)
     {
         case '0':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=SAFE;
                  data_detected=1;
                  break;
         case '1':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=PANIC;
                  data_detected=1;
                  break;
         case '2': 
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=MANUAL;
                  data_detected=1;
                  break;
         case '3':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=CALIBRATION;
                  data_detected=1;
                  break;
         case '4':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=YAWCONTROL;
                  data_detected=1;
                  break;
         case '5':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=FULLCONTROL;
                  data_detected=1;
                  break;
         case '6':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=RAW;
                  data_detected=1;
                  break;
         case '7':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=HEIGHT;
                  data_detected=1;
                  break;
         case '8':
-                 p_obj.header=MODE;
+                 p_obj.header=MODESET;
                  p_obj.data=WIRELESS;
                  data_detected=1;
                  break;

@@ -220,14 +220,14 @@ cleanobj:
 	$(RM) $(BUILD_DIRECTORIES)/*.o
 
 upload: default
-	dfu_serial/./serial_dfu.py  _build/in4073.bin
+	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
 
 pc: 
-	cd pc_terminal/; make
+	cd pc_terminal/; sudo make
 
 pc-run: 
-	cd pc_terminal/; make run
+	cd pc_terminal/; sudo make run
 	
 upload-run: default pc
-	dfu_serial/./serial_dfu.py  _build/in4073.bin
-	cd pc_terminal/; make run
+	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
+	cd pc_terminal/; sudo make run
