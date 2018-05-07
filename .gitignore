@@ -56,3 +56,6 @@ dkms.conf
 *.bin
 
 pc_terminal/pc-terminal
+
+# VS Code Files
+.vscode/
