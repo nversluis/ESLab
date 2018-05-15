@@ -145,19 +145,19 @@ void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 		}
 	}
 
-	for(i=0; i<4; i++){
+	for(uint8_t i=0; i<4; i++){
 		if(lift > 10 && rotor[i] < 200){
 			rotor[i] = 200;
 		}
 		else{
 			rotor[i] = 0;							// do not start rotors if lift is not provided.
 		}
-		if(rotor[i] => 500){
+		if(rotor[i] >= 500){
 			rotor[i] = 500;
 		}
 	}
 
-	for(i=0; i<4; i++){
+	for(uint8_t i=0; i<4; i++){
 		ae[i] = rotor[i];
 	}
 }
