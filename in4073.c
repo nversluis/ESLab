@@ -19,6 +19,7 @@
 
 #define MAX_PACKET_SIZE 10
 
+int rotor[4];
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
@@ -119,6 +120,48 @@ void process_packet(){
 		//nrf_delay_ms(1);
 	}
 }
+
+/*-----------------------------------------------------------------------------------------
+* convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
+* 						corresponding rotor rpm values.
+*
+* Author: Himanshu Shah
+* Date : 13/05/18
+*------------------------------------------------------------------------------------------
+*/
+void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
+	
+	rotor[0] = (lift + 2*pitch - yaw)/4;
+	rotor[1] = (lift - 2*roll + yaw)/4;
+	rotor[2] = (lift - 2*pitch - yaw)/4;
+	rotor[3] = (lift + 2*roll + yaw)/4;
+
+	for(uint8_t i=0; i<4; i++){
+		if(rotor[i] < 0){
+			rotor[i] = 0;   			
+		}
+		else{
+			rotor[i] = (int)sqrt(rotor[i]);
+		}
+	}
+
+	for(i=0; i<4; i++){
+		if(lift > 10 && rotor[i] < 200){
+			rotor[i] = 200;
+		}
+		else{
+			rotor[i] = 0;							// do not start rotors if lift is not provided.
+		}
+		if(rotor[i] => 500){
+			rotor[i] = 500;
+		}
+	}
+
+	for(i=0; i<4; i++){
+		ae[i] = rotor[i];
+	}
+}
+
 
 /*------------------------------------------------------------------
  * process_key -- process command keys
