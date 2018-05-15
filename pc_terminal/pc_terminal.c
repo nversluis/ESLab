@@ -335,8 +335,9 @@ int main(int argc, char **argv)
 			
 		if ((c = rs232_getchar_nb()) != -1)
 			term_putchar(c);
-
+                //send_j_packet();
 	}
+        
 
 	term_exitio();
 	rs232_close();
