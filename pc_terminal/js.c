@@ -147,8 +147,7 @@ void send_j_packet()
 		return;;											//TODO: convert into a function and replace with a return 
 	}
 
-	if(abs(axis[0] >= 20)){
-		make_j_packet();
-	}
+	make_j_packet();
+	
 	
 }

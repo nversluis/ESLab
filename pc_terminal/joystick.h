@@ -125,4 +125,7 @@ struct JS_DATA_SAVE_TYPE {
 	struct JS_DATA_TYPE JS_CORR;
 };
 
+void init_js();
+void send_j_packet();
+
 #endif /* _LINUX_JOYSTICK_H */

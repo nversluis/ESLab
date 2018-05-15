@@ -8,11 +8,13 @@
  */
 
 #include <stdio.h>
+#include <sys/timeb.h>
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
 #include <inttypes.h>
 #include "protocol.h"
+#include "joystick.h"
 
 int rs232_putchar(char c);
 
@@ -187,11 +189,14 @@ int 	rs232_putchar(char c)
  */
 int main(int argc, char **argv)
 {
+	struct timeb time_buffer;
 	char	c;
 	char c2;
+	time_t start_time, end_time;
 
 	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
-
+	
+	init_js();
 	term_initio();
 	rs232_open();
 
@@ -201,36 +206,57 @@ int main(int argc, char **argv)
 	 */
 	while ((c = rs232_getchar_nb()) != -1)
 		fputc(c,stderr);
+	
+	ftime(&time_buffer);
+	start_time=time_buffer.time*1000 + time_buffer.millitm;
+	end_time = start_time;
 
 	/* send & receive
 	 */
 	for (;;)
 	{
-		
-		if ((c = term_getchar_nb()) != -1){
-			//rs232_putchar(c);
-			
-			if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
-				if((c2 = term_getchar_nb()) == -1){
-					struct packet p_obj;
-					p_obj.header=MODESET;
-					p_obj.data=ABORT;
-					//TODO: compute crc and add to packet
-					p_obj.crc8=0x00;
-					//TODO: implement queue to send packets
-					rs232_putchar(p_obj.header);
-					rs232_putchar(p_obj.data);
-					rs232_putchar(p_obj.crc8);
+		if((start_time + 300) >= end_time){
+
+			if ((c = term_getchar_nb()) != -1){
+				//rs232_putchar(c);
+
+				if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
+					if((c2 = term_getchar_nb()) == -1){
+						struct packet p_obj;
+						p_obj.header=MODESET;
+						p_obj.data=ABORT;
+						//TODO: compute crc and add to packet
+						p_obj.crc8=0x00;
+						//TODO: implement queue to send packets
+						rs232_putchar(p_obj.header);
+						rs232_putchar(p_obj.data);
+						rs232_putchar(p_obj.crc8);
+						break;
+					}
+				}
+				else{
+					detect_term_input(c);
+					break;
 				}
 			}
-			else{
-				detect_term_input(c);
-			}
+
+			if ((c = rs232_getchar_nb()) != -1)
+				term_putchar(c);
+        	
+			//send_j_packet();
+		
+			ftime(&time_buffer);
+			end_time=time_buffer.time*1000 + time_buffer.millitm;
+		
 		}
-			
-		if ((c = rs232_getchar_nb()) != -1)
-			term_putchar(c);
-                //send_j_packet();
+
+		else{
+			ftime(&time_buffer);
+			start_time=time_buffer.time*1000 + time_buffer.millitm;
+			end_time = start_time;
+			send_j_packet();
+		}
+		//usleep(10000)
 	}
         
 
