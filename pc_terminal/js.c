@@ -89,7 +89,7 @@ void init_js(){
 
 void make_j_packet(){
 	j_obj.header = J_CONTROL;
-	j_obj.crc8 = make_crc8_nontabled(J_CONTROL, &new_axis[0], 4);
+	j_obj.crc8 = 0x00;
 	rs232_putchar(j_obj.header);
 	for (uint8_t i = 0; i < 4; i++) {
 		rs232_putchar(new_axis[i]);
