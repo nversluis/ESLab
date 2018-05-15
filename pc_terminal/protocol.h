@@ -5,7 +5,12 @@
 // Date: 03/05/18                                                  //
 //*****************************************************************//
 
+#ifndef PROTOCOL_H__
+#define PROTOCOL_H__
 #include<inttypes.h>
+
+
+void detect_term_input(char);
 
 //     Packet Headers    //
 //Mode packets
@@ -55,3 +60,9 @@ struct packet{
     signed data;
     uint8_t crc8;
 };
+
+int rs232_putchar(char c);
+void term_puts(char *s);
+
+
+#endif   // protocol.h
