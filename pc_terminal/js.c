@@ -25,7 +25,7 @@ int fd;
 struct js_event js;
 struct packet j_obj;
 int	axis[6];
-char new_axis[6];
+uint8_t new_axis[6];
 int	button[12];
 
 
@@ -89,7 +89,8 @@ void init_js(){
 
 void make_j_packet(){
 	j_obj.header = J_CONTROL;
-	j_obj.crc8 = 0x00;
+	//j_obj.crc8 = 0x00;
+	j_obj.crc8 = make_crc8_tabled(j_obj.header, new_axis, 4);
 	rs232_putchar(j_obj.header);
 	for (uint8_t i = 0; i < 4; i++) {
 		rs232_putchar(new_axis[i]);

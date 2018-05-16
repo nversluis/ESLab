@@ -218,6 +218,7 @@ int main(int argc, char **argv)
 		if((start_time + 300) >= end_time){
 
 			if ((c = term_getchar_nb()) != -1){
+				//printf("Character found: %c\n", c);
 				//rs232_putchar(c);
 
 				if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
@@ -233,24 +234,24 @@ int main(int argc, char **argv)
 						rs232_putchar(p_obj.crc8);
 						break;
 					}
-				}
-				else{
+				}else{
 					detect_term_input(c);
-					break;
+					//break;
 				}
+			}else{
+				//printf("Nothing should be found really...\n");
 			}
 
-			if ((c = rs232_getchar_nb()) != -1)
+			if ((c = rs232_getchar_nb()) != -1){
 				term_putchar(c);
+			}
         	
 			//send_j_packet();
 		
 			ftime(&time_buffer);
 			end_time=time_buffer.time*1000 + time_buffer.millitm;
 		
-		}
-
-		else{
+		}else{
 			ftime(&time_buffer);
 			start_time=time_buffer.time*1000 + time_buffer.millitm;
 			end_time = start_time;

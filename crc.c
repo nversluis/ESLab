@@ -1,11 +1,16 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/time.h>
 #include "crc.h"
+
+#ifndef _CRC_LIB_H
+#include <sys/time.h>
+#endif
+
 #define WIDTH (8 * sizeof(uint8_t))
 #define TOPBIT (1 << (WIDTH - 1))
 
-uint8_t make_crc8_tabled(char header, uint8_t data[], uint8_t numDataBytes){
+uint8_t make_crc8_tabled(uint8_t header, uint8_t data[], uint8_t numDataBytes){
+    //printf("Calculating CRC by table... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", header, data[0], numDataBytes);
     // CRC8-CCIT Lookup table [Poly = 0x07]
     static const uint8_t crc_lookup[256] = {
         0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
@@ -52,20 +57,28 @@ uint8_t make_crc8_tabled(char header, uint8_t data[], uint8_t numDataBytes){
     for(int j=0; j<numDataBytes+1; ++j){
         crc = crc_lookup[crc ^ packet[j]];
     }
+    //printf("CRC by table: %02X\n", crc);
     return crc;
 
 }
 
-uint8_t make_crc8_nontabled(char header, uint8_t data[], uint8_t numDataBytes){
+uint8_t make_crc8_nontabled(uint8_t header, uint8_t data[], uint8_t numDataBytes){
+    //printf("Calculating CRC by calc... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", header, data[0], numDataBytes);
     // Create packet byte array
     uint8_t packet[numDataBytes+1];
     packet[0] = header;
+    //printf("packet: %02X", packet[0]);
     for(uint8_t i=0; i<numDataBytes; i++){
         packet[i+1] = data[i];
+        //printf(" %02X\n", packet[i+1]);
     }
+    //printf("\n");
+
     // Calculate CRC
     uint8_t crc = 0;
+
     uint8_t length = numDataBytes + 1;
+    //printf("Calcs: %02X, length: %02X\n", crc, length);
     for(uint8_t i=0; i<length; ++i){
         crc ^= (packet[i] << (WIDTH - 8));
         for(uint8_t j=8; j>0; --j){
@@ -75,10 +88,12 @@ uint8_t make_crc8_nontabled(char header, uint8_t data[], uint8_t numDataBytes){
                 crc = crc << 1;
             }
         }
+        //printf("Calc[%d]: %02X\n", i, crc);
     }
+    //printf("CRC by calc: %02X\n", crc);
     return crc;
 }
-
+#ifndef _CRC_LIB_H
 int main(){
     // Test data
     char hdr_test = 0x01;
@@ -107,3 +122,4 @@ int main(){
     usec = (double)(after.tv_usec - before.tv_usec) / 1000000 + (double)(after.tv_sec - before.tv_sec);
     printf("Nontabled CRC result: %x, calculated in %f us.\n", crc, usec);
 }
+#endif

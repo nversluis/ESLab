@@ -15,9 +15,13 @@
 
 #include "in4073.h"
 #include <stdbool.h>
+#include <sys/time.h>
 #include "pc_terminal/protocol.h"
+#include "crc.h"
 
 #define MAX_PACKET_SIZE 10
+
+#define PACKET_DEBUG 0
 
 int rotor[4];
 uint8_t inPacketState = 0;
@@ -37,6 +41,7 @@ void process_packet(){
 	bool CRCIsValid = true; // Set this to default false when CRC is actually implemented
 	uint8_t readByte = 0;
 	uint8_t headerFound = false;
+	uint8_t crc_calc = 0;
 
 	if(rx_queue.count > 0){
 		readByte = dequeue(&rx_queue);
@@ -61,19 +66,13 @@ void process_packet(){
 					totalBytesToRead = 3;
 					headerFound = true;
 				}
-				if(readByte == SYSTIME || readByte == PRESSURE){
+				if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
 					// 4 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 5;
 					headerFound = true;
 				}
-				if(readByte == J_CONTROL || readByte == J_CONTROL){
-					// 6 Byte packets
-					headerByte = readByte;
-					totalBytesToRead = 7;
-					headerFound = true;
-				}
-				if(readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
+				if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
 					// 8 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 9;
@@ -83,9 +82,13 @@ void process_packet(){
 				if(headerFound == true){
 					inPacketBufSize = 0;
 					inPacketState = 1;
+					#if PACKET_DEBUG == 1
 					printf("Header byte found: 0x%02X\n", headerByte);
+					#endif
 				}else{
+					#if PACKET_DEBUG == 1
 					printf("Non-header found:  0x%02X\n", readByte);
+					#endif
 				}
 				break;
 			case 1:
@@ -93,25 +96,54 @@ void process_packet(){
 				
 				if(inPacketBufSize >= totalBytesToRead){
 					inPacketState = 2;
-					printf("CRC byte found:    0x%02X\n", readByte);
-					printf("Total data bytes read: %d\n", inPacketBufSize-1);
+					#if PACKET_DEBUG == 1
+					printf("CRC byte found:    0x%02X ", readByte);
+					#endif
 				}else{
+					#if PACKET_DEBUG == 1
 					printf("Data byte found:   0x%02X\n", readByte);
+					#endif
 					break;
 				}
 			case 2:
-				// Calculate/validate CRC
-				if(CRCIsValid == true){
-					printf("CRC is valid (unused for now)\n");
-					//Use values
-					//For now just return the packet
-					printf("Packet: ");
-					printf("0x%02X ", headerByte);
-					for(uint8_t i=0; i<inPacketBufSize; i++){
-						printf("0x%02X ", inPacketBuffer[i]);
-					}
-					printf("\n");
+				//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
+				crc_calc = make_crc8_tabled(headerByte, inPacketBuffer, inPacketBufSize-1);
+				if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
+					CRCIsValid = true;
+					#if PACKET_DEBUG == 1
+					printf("- Valid.\n");
+					#endif
+				}else{
+					CRCIsValid = false;
+					#if PACKET_DEBUG == 1
+					printf("- Invalid! Calculated CRC %02X, but got %02X\n", crc_calc, inPacketBuffer[inPacketBufSize-1]);
+					#endif
 				}
+				#if PACKET_DEBUG == 1
+				printf("Total data bytes read: %d\n", inPacketBufSize-1);
+				#endif
+				if(CRCIsValid == true){
+					switch(headerByte){
+						case J_CONTROL:
+							printf("Lift: %02X, Roll: %02X, Pitch: %02X, Yaw: %02X\n", inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3]);
+							convert_to_rpm(inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3]);
+							break;
+						default:
+							//For now just return the packet
+							printf("Packet: ");
+							printf("0x%02X ", headerByte);
+							for(uint8_t i=0; i<inPacketBufSize; i++){
+								printf("0x%02X ", inPacketBuffer[i]);
+							}
+							printf("\n");
+							break;
+					}
+					
+				}
+				inPacketState = 0;
+				//nrf_delay_ms(100);
+				break;
+			default:
 				inPacketState = 0;
 				break;
 		}
@@ -227,6 +259,7 @@ int main(void)
 
 	uint32_t counter = 0;
 	demo_done = false;
+
 
 	while (!demo_done)
 	{

@@ -8,6 +8,7 @@
 
 #include<stdio.h>
 #include "protocol.h"
+#include "../crc.h"
 
 void detect_term_input(char c){
 
@@ -105,8 +106,8 @@ void detect_term_input(char c){
                 break;
     }
     if(data_detected == 1){
-        //TODO: compute CRC and put in packet
-        p_obj.crc8=0x00;
+        //p_obj.crc8 = 0xFE;
+        p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
         //TODO: crude method, make use of rs232 queue instead of this 
         rs232_putchar(p_obj.header);
         rs232_putchar(p_obj.data);

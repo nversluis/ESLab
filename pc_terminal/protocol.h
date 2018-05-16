@@ -19,6 +19,7 @@ void detect_term_input(char);
 
 // Control packets
 #define J_CONTROL		0x80
+#define J_CONTROL_D		0x85 // double precision control message
 #define K_ROLL			0x81
 #define K_LIFT			0x82
 #define K_YAW			0x83
@@ -57,7 +58,7 @@ void detect_term_input(char);
 
 struct packet{
     uint8_t header;
-    signed data;
+    uint8_t data; //make it 1 byte for now, gonna fix this later
     uint8_t crc8;
 };
 
