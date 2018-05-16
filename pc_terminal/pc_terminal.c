@@ -8,69 +8,31 @@
  */
 
 #include <stdio.h>
+#include <conio.h>
+#include <windows.h>
 #include <sys/timeb.h>
-#include <termios.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include <inttypes.h>
 #include "protocol.h"
 #include "joystick.h"
 
-int rs232_putchar(char c);
-
+HANDLE hSerial;
 
 /*------------------------------------------------------------
  * console I/O
  *------------------------------------------------------------
  */
-struct termios 	savetty;
 
-void	term_initio()
+char term_getchar()
 {
-	struct termios tty;
+	if (_kbhit())
+	{
+		return _getch();
+	}
 
-	tcgetattr(0, &savetty);
-	tcgetattr(0, &tty);
-
-	tty.c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-	tty.c_cc[VTIME] = 0;
-	tty.c_cc[VMIN] = 0;
-
-	tcsetattr(0, TCSADRAIN, &tty);
-}
-
-void	term_exitio()
-{
-	tcsetattr(0, TCSADRAIN, &savetty);
-}
-
-void	term_puts(char *s)
-{
-	fprintf(stderr,"%s",s);
-}
-
-void	term_putchar(char c)
-{
-	putc(c,stderr);
-}
-
-int	term_getchar_nb()
-{
-        static unsigned char 	line [2];
-
-        if (read(0,line,1)) // note: destructive read
-        		return (int) line[0];
-
-        return -1;
-}
-
-int	term_getchar()
-{
-        int    c;
-
-        while ((c = term_getchar_nb()) == -1)
-                ;
-        return c;
+	return -1;
 }
 
 /*------------------------------------------------------------
@@ -79,104 +41,72 @@ int	term_getchar()
  * 115,200 baud
  *------------------------------------------------------------
  */
-#include <termios.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <assert.h>
-#include <time.h>
 
-int serial_device = 0;
-int fd_RS232;
 
-void rs232_open(void)
+void rs232_open()
 {
-  	char 		*name;
-  	int 		result;
-  	struct termios	tty;
 
-       	fd_RS232 = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);  // Hardcode your serial port here, or request it as an argument at runtime
+	DCB dcbSerialParams = { 0 };
+	
+	//Open Serial port in blocking mode
+	hSerial = CreateFile(
+		"\\\\.\\COM10", GENERIC_READ | GENERIC_WRITE, 0, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	assert(fd_RS232>=0);
+	if (hSerial == INVALID_HANDLE_VALUE)
+	{
+		printf("\r\nCOM port cannot be opened\r\n");
+		exit(1);
+	}
 
-  	result = isatty(fd_RS232);
-  	assert(result == 1);
+	PurgeComm(hSerial, PURGE_TXABORT | PURGE_TXCLEAR | PURGE_RXABORT | PURGE_RXCLEAR);
+	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+	if (GetCommState(hSerial, &dcbSerialParams) == 0)
+	{
+		printf("\r\nError reading COM properties\r\n");
+		CloseHandle(hSerial);
+		exit(1);
+	}
 
-  	name = ttyname(fd_RS232);
-  	assert(name != 0);
-
-  	result = tcgetattr(fd_RS232, &tty);
-	assert(result == 0);
-
-	tty.c_iflag = IGNBRK; /* ignore break condition */
-	tty.c_oflag = 0;
-	tty.c_lflag = 0;
-
-	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; /* 8 bits-per-character */
-	tty.c_cflag |= CLOCAL | CREAD; /* Ignore model status + read input */
-
-	cfsetospeed(&tty, B115200);
-	cfsetispeed(&tty, B115200);
-
-	tty.c_cc[VMIN]  = 0;
-	tty.c_cc[VTIME] = 1; // added timeout
-
-	tty.c_iflag &= ~(IXON|IXOFF|IXANY);
-
-	result = tcsetattr (fd_RS232, TCSANOW, &tty); /* non-canonical */
-
-	tcflush(fd_RS232, TCIOFLUSH); /* flush I/O buffer */
+	dcbSerialParams.BaudRate = CBR_115200;
+	dcbSerialParams.ByteSize = 8;
+	dcbSerialParams.StopBits = ONESTOPBIT;
+	dcbSerialParams.Parity = NOPARITY;
+	if (SetCommState(hSerial, &dcbSerialParams) == 0)
+	{
+		printf("\r\nError setting COM properties\r\n");
+		CloseHandle(hSerial);
+		exit(1);
+	}
 }
 
 
 void 	rs232_close(void)
 {
-  	int 	result;
-
-  	result = close(fd_RS232);
-  	assert (result==0);
+	CloseHandle(hSerial);
 }
 
 
-int	rs232_getchar_nb()
+char rs232_getchar()
 {
-	int 		result;
-	unsigned char 	c;
-
-	result = read(fd_RS232, &c, 1);
-
-	if (result == 0)
-		return -1;
-
-	else
+	char data[1];
+	DWORD bytes_read;
+	while (!ReadFile(hSerial, data, 1, &bytes_read, NULL))
 	{
-		assert(result == 1);
-		return (int) c;
 	}
+	return data[0];
 }
 
-
-int 	rs232_getchar()
+void rs232_putchar(char c)
 {
-	int 	c;
+	char data[1];
+	DWORD bytes_written = 0;
 
-	while ((c = rs232_getchar_nb()) == -1)
-		;
-	return c;
-}
-
-
-int 	rs232_putchar(char c)
-{
-	int result;
-
-	do {
-		result = (int) write(fd_RS232, &c, 1);
-	} while (result == 0);
-
-	assert(result == 1);
-	return result;
+	data[0] = c;
+	if (!WriteFile(hSerial, data, 1, &bytes_written, NULL))
+	{
+		printf("\r\nError writing data to COM port\r\n");
+	}
 }
 
 
@@ -190,21 +120,18 @@ int 	rs232_putchar(char c)
 int main(int argc, char **argv)
 {
 	struct timeb time_buffer;
-	char	c;
+	char c;
 	char c2;
 	time_t start_time, end_time;
 
-	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
+	term_puts("\nTerminal program - Embedded Real-Time Systems Group 18\n");
 	
 	init_js();
-	term_initio();
 	rs232_open();
-
-	term_puts("Type ^C to exit\n");
 
 	/* discard any incoming text
 	 */
-	while ((c = rs232_getchar_nb()) != -1)
+	while ((c = rs232_getchar()) != -1)
 		fputc(c,stderr);
 	
 	ftime(&time_buffer);
@@ -240,8 +167,8 @@ int main(int argc, char **argv)
 				}
 			}
 
-			if ((c = rs232_getchar_nb()) != -1)
-				term_putchar(c);
+			if ((c = rs232_getchar()) != -1)
+				printf("%c",c);
         	
 			//send_j_packet();
 		
@@ -260,9 +187,8 @@ int main(int argc, char **argv)
 	}
         
 
-	term_exitio();
 	rs232_close();
-	term_puts("\n<exit>\n");
+	printf("\r\n<exit>\r\n");
 
 	return 0;
 }
