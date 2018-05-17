@@ -27,14 +27,18 @@
 #define BLUE		30
 #define INT_PIN		5
 
+uint8_t QuadState;
+int8_t LRPY[4];
+
 bool demo_done;
 
 // Control
 int16_t motor[4],ae[4];
-void run_filters_and_control();
+void run_filters();
+void run_control();
 
 // Timers
-#define TIMER_PERIOD	50 //50ms=20Hz (MAX 23bit, 4.6h)
+#define TIMER_PERIOD	4 //50ms=20Hz (MAX 23bit, 4.6h), 4ms = 250Hz
 void timers_init(void);
 uint32_t get_time_us(void);
 bool check_timer_flag(void);

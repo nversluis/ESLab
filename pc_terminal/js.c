@@ -173,10 +173,10 @@ void send_j_packet()
 	*/
 
 	if (button[0] || button[1]){
-		term_puts("Entering PANIC mode.....");			//If safe mode or panic mode button pressed, go to panic mode(which will automatically end up in safe mode)			
+		//term_puts("Entering PANIC mode.....");			//If safe mode or panic mode button pressed, go to panic mode(which will automatically end up in safe mode)			
 		j_obj.header=MODESET;
 		j_obj.data=PANIC;
-		j_obj.crc8=0x00;								//TODO: compute CRC using function
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								//TODO: compute CRC using function
 		rs232_putchar(j_obj.header);
 		rs232_putchar(j_obj.data);
 		rs232_putchar(j_obj.crc8);

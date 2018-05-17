@@ -25,12 +25,12 @@
 
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
 
-int16_t rotor[4];
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
+
 
 /*------------------------------------------------------------------
  * process_packet -- process incoming packets
@@ -126,9 +126,17 @@ void process_packet(){
 				#endif
 				if(CRCIsValid == true){
 					switch(headerByte){
+						case MODESET:
+							if(QuadState != PANIC && QuadState != PANIC_COUNTDOWN){
+								printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
+								QuadState = inPacketBuffer[0];
+							}
 						case J_CONTROL:
-							printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
-							convert_to_rpm((uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
+							//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
+							LRPY[0] = (uint8_t)inPacketBuffer[0];
+							LRPY[1] = (int8_t)inPacketBuffer[1];
+							LRPY[2] = (int8_t)inPacketBuffer[2];
+							LRPY[3] = (int8_t)inPacketBuffer[3];
 							break;
 						default:
 							//For now just return the packet
@@ -153,49 +161,6 @@ void process_packet(){
 		//printf("No byte found.\n");
 		//nrf_delay_ms(1);
 	}
-}
-
-/*-----------------------------------------------------------------------------------------
-* convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
-* 						corresponding rotor rpm values.
-*
-* Author: Himanshu Shah
-* Date : 13/05/18
-*------------------------------------------------------------------------------------------
-*/
-void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
-	
-	rotor[0] = (int16_t)((10*lift) + 2*pitch - yaw)/4;
-	rotor[1] = (int16_t)((10*lift) - 2*roll + yaw)/4;
-	rotor[2] = (int16_t)((10*lift) - 2*pitch - yaw)/4;
-	rotor[3] = (int16_t)((10*lift) + 2*roll + yaw)/4;
-
-	for(uint8_t i=0; i<4; i++){
-		if(rotor[i] < 0){
-			rotor[i] = 0;   			
-		}
-		else{
-			rotor[i] = (int)sqrt(rotor[i]);
-		}
-	}
-
-	for(uint8_t i=0; i<4; i++){
-		if(lift > 10 && rotor[i] < 200){
-			rotor[i] = 200;
-		}
-		else{
-			rotor[i] = 0;							// do not start rotors if lift is not provided.
-		}
-		if(rotor[i] >= 500){
-			rotor[i] = 500;
-		}
-	}
-
-	for(uint8_t i=0; i<4; i++){
-		ae[i] = rotor[i];
-		printf(" ae[%d]=%d", i, ae[i]);
-	}
-	printf("\n");
 }
 
 
@@ -249,6 +214,7 @@ void process_key(uint8_t c)
  */
 int main(void)
 {
+	QuadState = SAFE;
 	uart_init();
 	gpio_init();
 	timers_init();
@@ -273,8 +239,11 @@ int main(void)
 //
 		if (check_timer_flag()) 
 		{
-			if (counter++%20 == 0) nrf_gpio_pin_toggle(BLUE);
-//
+			if (counter++%20 == 0){
+				nrf_gpio_pin_toggle(BLUE);
+			}
+			run_control();
+
 //			adc_request_sample();
 //			read_baro();
 //
@@ -284,14 +253,16 @@ int main(void)
 //			printf("%6d %6d %6d | ", sp, sq, sr);
 //			printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
 //
-//			clear_timer_flag();
+			clear_timer_flag();
 		}
 //
+		
 		if (check_sensor_int_flag()) 
 		{
-			get_dmp_data();
-			run_filters_and_control();
+			//get_dmp_data();
+			run_filters();
 		}
+		
 	}	
 
 	printf("\n\t Goodbye \n\n");

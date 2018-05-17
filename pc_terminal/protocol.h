@@ -41,17 +41,17 @@ void detect_term_input(char);
 //Mode values 
 #define SAFE            0x11
 #define PANIC           0x12
-#define MANUAL          0x13
-#define CALIBRATION     0x14
-#define YAWCONTROL      0x15
-#define FULLCONTROL     0x16
-#define RAW             0x17
-#define HEIGHT          0x18
-#define WIRELESS        0x19
-#define ABORT           0x60
+#define PANIC_COUNTDOWN 0x13
+#define MANUAL          0x14
+#define CALIBRATION     0x15
+#define YAWCONTROL      0x16
+#define FULLCONTROL     0x17
+#define RAW             0x18
+#define HEIGHT          0x19
+#define WIRELESS        0x1A
 
-
-
+//Some escape value
+#define ABORT			0x60
 
 #define DECREASE		-1
 #define INCREASE		1
