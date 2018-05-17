@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 	 */
 	for (;;)
 	{
-		if((start_time + 300) >= end_time){
+		if((start_time + 100) >= end_time){
 
 			if ((c = term_getchar_nb()) != -1){
 				//printf("Character found: %c\n", c);

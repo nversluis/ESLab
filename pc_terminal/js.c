@@ -24,8 +24,8 @@
 int fd;
 struct js_event js;
 struct packet j_obj;
-int	axis[6];
-uint8_t new_axis[6];
+int16_t	axis[6];
+int8_t new_axis[6];
 int	button[12];
 
 
@@ -41,7 +41,7 @@ unsigned int    mon_time_ms(void)
         return ms;
 }
 
-void j_scale(int axis[])
+void j_scale(int16_t axis[])
 {
 
 	unsigned int range = 65535;
@@ -126,6 +126,7 @@ void send_j_packet()
 				button[js.number] = js.value;
 				break;
 			case JS_EVENT_AXIS:
+				printf("Js[%d].value = %X\n", js.number, js.value);
 				axis[js.number] = js.value;
 				break;
 		}
@@ -135,7 +136,19 @@ void send_j_packet()
 		exit (1);
 	}
 	
+	printf("Js array: ");
+	for(uint8_t i = 0; i < 4; i++){
+		printf(" %04X", axis[i]);
+	}
+	printf("\n");
+
 	j_scale(&axis[0]);									//scale down joystick axes values to one byte
+
+	printf("Js scaled array: ");
+	for(uint8_t i = 0; i < 4; i++){
+		printf(" %02X", new_axis[i]);
+	}
+	printf("\n");
 
 	if (button[0] || button[1]){
 		term_puts("Entering PANIC mode.....");			//If safe mode or panic mode button pressed, go to panic mode(which will automatically end up in safe mode)			

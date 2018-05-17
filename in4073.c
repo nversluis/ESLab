@@ -23,6 +23,8 @@
 
 #define PACKET_DEBUG 0
 
+void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
+
 int rotor[4];
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;

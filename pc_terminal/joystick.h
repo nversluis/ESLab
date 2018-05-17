@@ -48,7 +48,7 @@
 
 struct js_event {
 	__u32 time;	/* event timestamp in milliseconds */
-	__s16 value;	/* value */
+	int32_t value;	/* value */
 	__u8 type;	/* event type */
 	__u8 number;	/* axis/button number */
 };
