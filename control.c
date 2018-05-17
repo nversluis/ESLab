@@ -130,6 +130,9 @@ void run_control() // 250Hz
 		case WIRELESS:
 			QuadState = PANIC;
 			break;
+		case DUMPLOGS:
+			QuadState = PANIC;
+			break;
 		default:
 			QuadState = PANIC;
 			break;

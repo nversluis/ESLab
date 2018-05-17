@@ -49,6 +49,7 @@ void detect_term_input(char);
 #define RAW             0x18
 #define HEIGHT          0x19
 #define WIRELESS        0x1A
+#define DUMPLOGS		0x1B
 
 //Some escape value
 #define ABORT			0x60
