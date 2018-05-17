@@ -23,9 +23,9 @@
 
 #define PACKET_DEBUG 0
 
-void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
+void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
 
-int rotor[4];
+int16_t rotor[4];
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
@@ -109,7 +109,7 @@ void process_packet(){
 				}
 			case 2:
 				//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
-				crc_calc = make_crc8_tabled(headerByte, inPacketBuffer, inPacketBufSize-1);
+				crc_calc = make_crc8_tabled(headerByte, (uint8_t*)inPacketBuffer, inPacketBufSize-1);
 				if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
 					CRCIsValid = true;
 					#if PACKET_DEBUG == 1
@@ -127,8 +127,8 @@ void process_packet(){
 				if(CRCIsValid == true){
 					switch(headerByte){
 						case J_CONTROL:
-							printf("Lift: %02X, Roll: %02X, Pitch: %02X, Yaw: %02X\n", inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3]);
-							convert_to_rpm(inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3]);
+							printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
+							convert_to_rpm((uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
 							break;
 						default:
 							//For now just return the packet
@@ -163,12 +163,12 @@ void process_packet(){
 * Date : 13/05/18
 *------------------------------------------------------------------------------------------
 */
-void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
+void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 	
-	rotor[0] = (lift + 2*pitch - yaw)/4;
-	rotor[1] = (lift - 2*roll + yaw)/4;
-	rotor[2] = (lift - 2*pitch - yaw)/4;
-	rotor[3] = (lift + 2*roll + yaw)/4;
+	rotor[0] = (int16_t)((10*lift) + 2*pitch - yaw)/4;
+	rotor[1] = (int16_t)((10*lift) - 2*roll + yaw)/4;
+	rotor[2] = (int16_t)((10*lift) - 2*pitch - yaw)/4;
+	rotor[3] = (int16_t)((10*lift) + 2*roll + yaw)/4;
 
 	for(uint8_t i=0; i<4; i++){
 		if(rotor[i] < 0){
@@ -193,7 +193,9 @@ void convert_to_rpm(int8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 
 	for(uint8_t i=0; i<4; i++){
 		ae[i] = rotor[i];
+		printf(" ae[%d]=%d", i, ae[i]);
 	}
+	printf("\n");
 }
 
 

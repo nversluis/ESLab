@@ -26,6 +26,7 @@ struct js_event js;
 struct packet j_obj;
 int16_t	axis[6];
 int8_t new_axis[6];
+int8_t temp_axis[6];
 int	button[12];
 
 
@@ -40,7 +41,7 @@ unsigned int    mon_time_ms(void)
         ms = ms + tv.tv_usec / 1000;
         return ms;
 }
-
+/*
 void j_scale(int16_t axis[])
 {
 
@@ -60,11 +61,13 @@ void j_scale(int16_t axis[])
 			} 
 			else 
 			{
-				new_axis[i] = (((axis[i] - min) * new_range) / range) + new_min;
+				new_axis[i] = (int8_t)(((axis[i] - min) * new_range) / range) + new_min;
+				printf("new_axis[i]: %hhd", i,new_axis[i]);
 			}
 		}
 	}
 }
+*/
 
 void    mon_delay_ms(unsigned int ms)
 {
@@ -90,7 +93,10 @@ void init_js(){
 void make_j_packet(){
 	j_obj.header = J_CONTROL;
 	//j_obj.crc8 = 0x00;
-	j_obj.crc8 = make_crc8_tabled(j_obj.header, new_axis, 4);
+	uint8_t lift_thing = (uint8_t)((int16_t)(-1*new_axis[0])+127);
+	//printf("\n\nlift_thing: %d\n", lift_thing);
+	new_axis[0] = lift_thing;
+	j_obj.crc8 = make_crc8_tabled(j_obj.header, (uint8_t*)new_axis, 4);
 	rs232_putchar(j_obj.header);
 	for (uint8_t i = 0; i < 4; i++) {
 		rs232_putchar(new_axis[i]);
@@ -106,6 +112,11 @@ void send_j_packet()
 {
 	
 
+	unsigned int range = 65535;
+	unsigned int new_range = 255;
+	//unsigned int max = 32767;
+	int min = -32768;
+	int new_min = -128;
 	//while (1) {
 
 
@@ -126,8 +137,10 @@ void send_j_packet()
 				button[js.number] = js.value;
 				break;
 			case JS_EVENT_AXIS:
-				printf("Js[%d].value = %X\n", js.number, js.value);
-				axis[js.number] = js.value;
+				//printf("Js[%d].value = %hd\n", js.number, js.value);
+				//axis[js.number] = js.value;
+				temp_axis[js.number] = (int8_t)(((js.value - min) * new_range) / range) + new_min;
+				//printf("Jsscaled[%d].value = %hd\n", js.number, temp_axis[js.number]);
 				break;
 		}
 	}
@@ -135,20 +148,29 @@ void send_j_packet()
 		perror("\njs: error reading (EAGAIN)");
 		exit (1);
 	}
-	
+
+	new_axis[0] = temp_axis[3];
+	new_axis[1] = temp_axis[0];
+	new_axis[2] = temp_axis[1];
+	new_axis[3] = temp_axis[2];
+
+	/*
 	printf("Js array: ");
 	for(uint8_t i = 0; i < 4; i++){
-		printf(" %04X", axis[i]);
+		printf(" %hd", axis[i]);
 	}
 	printf("\n");
 
-	j_scale(&axis[0]);									//scale down joystick axes values to one byte
+	//j_scale(&axis[0]);									//scale down joystick axes values to one byte
 
 	printf("Js scaled array: ");
 	for(uint8_t i = 0; i < 4; i++){
-		printf(" %02X", new_axis[i]);
+		//new_axis[i] = (int8_t)((((axis[i] - min) * new_range) / range) + new_min);
+		printf(" %hhd", new_axis[i]);
+		//printf(" %hhd", );
 	}
 	printf("\n");
+	*/
 
 	if (button[0] || button[1]){
 		term_puts("Entering PANIC mode.....");			//If safe mode or panic mode button pressed, go to panic mode(which will automatically end up in safe mode)			
