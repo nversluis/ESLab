@@ -127,7 +127,7 @@ void process_packet(){
 				if(CRCIsValid == true){
 					switch(headerByte){
 						case MODESET:
-							if(QuadState != PANIC && QuadState != PANIC_COUNTDOWN){
+							if(QuadState != PANIC && QuadState != PANIC_COUNTDOWN && QuadState != SAFE_NONZERO){
 								printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
 								QuadState = inPacketBuffer[0];
 							}

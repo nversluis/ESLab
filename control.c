@@ -73,6 +73,48 @@ void run_filters() // 100Hz (or different if DMP speed is changed)
 }
 
 /*-----------------------------------------------------------------------------------------
+* near_zero() -	function that checks whether requested inputs are near-zero to
+*				escape safe mode
+*
+* Author: Mark Röling
+* Date : 21/05/2018
+*------------------------------------------------------------------------------------------
+*/
+#define NON_ZERO_DEBUG	 1
+#define LIFT_THRESSHOLD  20
+#define ROLL_THRESSHOLD  20
+#define PITCH_THRESSHOLD 20
+#define YAW_THRESSHOLD   20
+bool near_zero(void){
+	if((uint8_t)LRPY[0] < LIFT_THRESSHOLD){ // lift
+		if((int8_t)LRPY[1] < ROLL_THRESSHOLD && (int8_t)LRPY[1] > -ROLL_THRESSHOLD){ // roll
+			if((int8_t)LRPY[2] < PITCH_THRESSHOLD && (int8_t)LRPY[2] > -PITCH_THRESSHOLD){ // pitch
+				if((int8_t)LRPY[3] < YAW_THRESSHOLD && (int8_t)LRPY[3] > -YAW_THRESSHOLD){ // yaw
+					return true;
+				}else{
+					#if NON_ZERO_DEBUG == 1
+					printf("Yaw non-zero: %d\n", (uint8_t)LRPY[3]);
+					#endif
+				}
+			}else{
+				#if NON_ZERO_DEBUG == 1
+				printf("Pitch non-zero: %d\n", (uint8_t)LRPY[2]);
+				#endif
+			}
+		}else{
+			#if NON_ZERO_DEBUG == 1
+			printf("Roll non-zero: %d\n", (int8_t)LRPY[1]);
+			#endif
+		}
+	}else{
+		#if NON_ZERO_DEBUG == 1
+		printf("Lift non-zero: %d\n", (uint8_t)LRPY[0]);
+		#endif
+	}
+	return false;
+}
+
+/*-----------------------------------------------------------------------------------------
 * run_control() -	function that runs the quadcopter state machine.
 *
 * Author: Mark Röling
@@ -85,10 +127,28 @@ void run_control() // 250Hz
 
 	switch(QuadState){
 		case SAFE:
+			//printf("S\n");
 			ae[0] = 0;
 			ae[1] = 0;
 			ae[2] = 0;
 			ae[3] = 0;
+			if(!near_zero()){ //inputs are not near 0
+				printf("Safe mode, non-zero.\n");
+				QuadState = SAFE_NONZERO;
+			}else{
+				break;
+			}
+		case SAFE_NONZERO:
+			//printf("SN\n");
+			ae[0] = 0;
+			ae[1] = 0;
+			ae[2] = 0;
+			ae[3] = 0;
+			//move to state safe if inputs are near 0
+			if(near_zero()){ //inputs are within safe margin of 0
+				printf("Safe mode, zero.\n");
+				QuadState = SAFE;
+			}
 			break;
 		case PANIC:
 			printf("Initiate PANIC mode.\n");
@@ -103,7 +163,7 @@ void run_control() // 250Hz
 				if(ae[2]>0) ae[2]--;
 				if(ae[3]>0) ae[3]--;
 			}else{
-				QuadState = SAFE;
+				QuadState = SAFE_NONZERO;
 				printf("Initiate SAFE mode.\n");
 			}
 			break;
