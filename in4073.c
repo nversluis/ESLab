@@ -224,12 +224,11 @@ int main(void)
 	baro_init();
 	spi_flash_init();
 	//ble_init();
-
-
+	log_init_done = false;
+	log_err = false;
 
 	uint32_t counter = 0;
 	demo_done = false;
-
 
 	while (!demo_done)
 	{

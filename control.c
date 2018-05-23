@@ -138,4 +138,18 @@ void run_control() // 250Hz
 	}
 	// ae[0] = xxx, ae[1] = yyy etc etc
 	update_motors();
+	/*-------------------------------------------------------------------------------------
+	* Logger call
+	* Author: Niels Versluis
+	*------------------------------------------------------------------------------------*/
+	uint32_t cur_time = get_time_us();
+	// Only log when flash is initialized, no logging errors have occured, and log period
+	// has expired.
+	if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
+		prev_write_addr += LOG_ENTRY_SIZE_BYTES;
+		prev_log_time = cur_time;
+		log_err = !write_log(prev_write_addr, QuadState);
+	} else if (log_err){
+		printf("ERROR: Logging aborted!\n");
+	}
 }

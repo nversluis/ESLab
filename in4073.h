@@ -20,6 +20,7 @@
 #include "ml.h"
 #include "app_util_platform.h"
 #include <math.h>
+#include "pc_terminal/protocol.h"
 
 #define RED		22
 #define YELLOW		24
@@ -110,5 +111,15 @@ queue ble_tx_queue;
 volatile bool radio_active;
 void ble_init(void);
 void ble_send(void);
+
+// Logger
+#define FLASH_ADDR_LIMIT   		0x01FFFF    // Maximum flash address
+#define LOG_ENTRY_SIZE_BYTES  	27          // Amount of bytes in a log entry
+#define LOG_PERIOD_US			1000		// Amount of microseconds between logs
+uint32_t prev_log_time;
+uint32_t prev_write_addr;
+bool log_init_done;
+bool log_err;
+bool write_log(uint32_t address, uint8_t state);
 
 #endif // IN4073_H__

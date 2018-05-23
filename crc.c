@@ -1,7 +1,17 @@
+/*------------------------------------------------------------------
+ * crc.c
+ * CRC8 calculation functions for a byte array with arbitrary length
+ * make_crc_tabled() uses tables for additional speedup at the cost
+ * of memory, while make_crc_nontabled is slower, but has a much 
+ * lower memory footprint.
+ * 
+ * Author: Niels Versluis - 4227646
+ *----------------------------------------------------------------*/
 #include <stdint.h>
 #include <stdio.h>
 #include "crc.h"
 
+// Needed for bench, but only on PC
 #ifndef _CRC_LIB_H
 #include <sys/time.h>
 #endif
@@ -9,6 +19,7 @@
 #define WIDTH (8 * sizeof(uint8_t))
 #define TOPBIT (1 << (WIDTH - 1))
 
+// Tabled CRC calculation
 uint8_t make_crc8_tabled(uint8_t header, uint8_t data[], uint8_t numDataBytes){
     //printf("Calculating CRC by table... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", header, data[0], numDataBytes);
     // CRC8-CCIT Lookup table [Poly = 0x07]
@@ -59,9 +70,9 @@ uint8_t make_crc8_tabled(uint8_t header, uint8_t data[], uint8_t numDataBytes){
     }
     //printf("CRC by table: %02X\n", crc);
     return crc;
-
 }
 
+// Nontabled CRC calculation
 uint8_t make_crc8_nontabled(uint8_t header, uint8_t data[], uint8_t numDataBytes){
     //printf("Calculating CRC by calc... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", header, data[0], numDataBytes);
     // Create packet byte array
@@ -93,6 +104,8 @@ uint8_t make_crc8_nontabled(uint8_t header, uint8_t data[], uint8_t numDataBytes
     //printf("CRC by calc: %02X\n", crc);
     return crc;
 }
+
+// Benchmark function. Only runs on PC.
 #ifndef _CRC_LIB_H
 int main(){
     // Test data
