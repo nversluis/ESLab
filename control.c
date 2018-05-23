@@ -80,7 +80,7 @@ void run_filters() // 100Hz (or different if DMP speed is changed)
 * Date : 21/05/2018
 *------------------------------------------------------------------------------------------
 */
-#define NON_ZERO_DEBUG	 1
+#define NON_ZERO_DEBUG	 0
 #define LIFT_THRESSHOLD  20
 #define ROLL_THRESSHOLD  20
 #define PITCH_THRESSHOLD 20
@@ -164,7 +164,7 @@ void run_control() // 250Hz
 				if(ae[3]>0) ae[3]--;
 			}else{
 				QuadState = SAFE_NONZERO;
-				printf("Initiate SAFE mode.\n");
+				printf("Initiate SAFE_NONZERO mode.\n");
 			}
 			break;
 		case MANUAL:
