@@ -29,6 +29,8 @@
 #define INT_PIN		5
 
 uint8_t QuadState;
+uint8_t ModeToSet;
+uint8_t PreviousMode;
 int8_t LRPY[4];
 
 bool demo_done;
@@ -115,11 +117,13 @@ void ble_send(void);
 // Logger
 #define FLASH_ADDR_LIMIT   		0x01FFFF    // Maximum flash address
 #define LOG_ENTRY_SIZE_BYTES  	27          // Amount of bytes in a log entry
-#define LOG_PERIOD_US			1000		// Amount of microseconds between logs
+#define LOG_PERIOD_US			10000		// Amount of microseconds between logs
 uint32_t prev_log_time;
 uint32_t prev_write_addr;
 bool log_init_done;
 bool log_err;
-bool write_log(uint32_t address, uint8_t state);
+bool write_log(uint32_t address);
+bool init_log();
+bool read_log_entry(uint32_t addr);
 
 #endif // IN4073_H__

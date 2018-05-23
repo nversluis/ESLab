@@ -127,10 +127,10 @@ void process_packet(){
 				if(CRCIsValid == true){
 					switch(headerByte){
 						case MODESET:
-							if(QuadState != PANIC && QuadState != PANIC_COUNTDOWN && QuadState != SAFE_NONZERO){
-								printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
-								QuadState = inPacketBuffer[0];
-							}
+							//printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
+							PreviousMode = QuadState;
+							ModeToSet = inPacketBuffer[0];
+							QuadState = SETNEWMODE;
 						case J_CONTROL:
 							//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
 							LRPY[0] = (uint8_t)inPacketBuffer[0];
@@ -223,9 +223,14 @@ int main(void)
 	imu_init(true, 100);	
 	baro_init();
 	spi_flash_init();
+	nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
 	//ble_init();
-	log_init_done = false;
+	log_init_done = init_log();
 	log_err = false;
+	bool log_err_change = false;
+	prev_write_addr = 0;
+
+	prev_log_time = get_time_us();
 
 	uint32_t counter = 0;
 	demo_done = false;
@@ -240,6 +245,23 @@ int main(void)
 		{
 			if (counter++%20 == 0){
 				nrf_gpio_pin_toggle(BLUE);
+
+				/*-------------------------------------------------------------------------------------
+				* Logger call
+				* Author: Niels Versluis
+				*------------------------------------------------------------------------------------*/
+				uint32_t cur_time = get_time_us();
+				// Only log when flash is initialized, no logging errors have occured, and log period
+				// has expired.
+				if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
+					prev_log_time = cur_time;
+					log_err = !write_log(prev_write_addr);
+					prev_write_addr += LOG_ENTRY_SIZE_BYTES;
+					//printf("Entry logged correctly.\n");
+				} else if (!log_err_change && log_err){
+					printf("ERROR: Logging aborted!\n");
+					log_err_change = true;
+				}
 			}
 			run_control();
 
@@ -258,7 +280,7 @@ int main(void)
 		
 		if (check_sensor_int_flag()) 
 		{
-			//get_dmp_data();
+			get_dmp_data();
 			run_filters();
 		}
 		

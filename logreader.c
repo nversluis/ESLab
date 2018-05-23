@@ -19,7 +19,7 @@ bool read_log_to_file(){
     // Read log data from flash per entry
     while(((addr + LOG_ENTRY_SIZE_BYTES) <= FLASH_ADDR_LIMIT) && read_ok){
         // Make controller output entry to RS232
-        read_ok = read_log_entry(addr);
+        // read_ok = read_log_entry(addr);
         // Read entry from RS232
         int i = 0;
         while(i < LOG_ENTRY_SIZE_BYTES){
@@ -33,7 +33,8 @@ bool read_log_to_file(){
         fprintf(f, "%s","\n");
         // Iterate address
         addr += LOG_ENTRY_SIZE_BYTES;
-    } else if (!read_ok){
+    }
+    if (!read_ok){
         printf("ERROR: Log read failed!");
     }
 }

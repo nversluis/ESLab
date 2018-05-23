@@ -62,6 +62,11 @@ void detect_term_input(char c){
                  p_obj.data=WIRELESS;
                  data_detected=1;
                  break;
+        case '9':
+                 p_obj.header=MODESET;
+                 p_obj.data=DUMPLOGS;
+                 data_detected=1;
+                 break;
         case 'a':
                  p_obj.header=K_LIFT;
                  p_obj.data=INCREASE;

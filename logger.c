@@ -6,10 +6,13 @@
  *----------------------------------------------------------------*/
 #include "in4073.h"
 #include <stdbool.h>
+#include "crc.h"
+
+#define LOG_DUMP_DEBUG 0
 
 // Write relevant log data to the flash memory at the specified address
 // Returns true on success, false on failure
-bool write_log(uint32_t addr, uint8_t state){
+bool write_log(uint32_t addr){
     if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
         printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
@@ -23,7 +26,8 @@ bool write_log(uint32_t addr, uint8_t state){
         array[2] = (t_cur >> (8*2)) & 0xff;
         array[3] = (t_cur >> (8*3)) & 0xff;
         /* State */
-        array[4] = state;
+        //array[4] = state;
+        array[4] = QuadState;
         /* Motor values */
         array[5] = ae[0] & 0xff;
         array[6] = (ae[0] >> 8) & 0xff;
@@ -57,6 +61,14 @@ bool write_log(uint32_t addr, uint8_t state){
         array[25] = bat_volt & 0xff;
         array[26] = (bat_volt >> 8) & 0xff;
 
+        #if LOG_DUMP_DEBUG == 1
+        printf("Log Written: ");
+        for(uint8_t i=0; i<LOG_ENTRY_SIZE_BYTES; i++){
+            printf("%02X ", array[i]);
+        }
+        printf("\n");
+        #endif
+
         if(flash_write_bytes(addr, array, LOG_ENTRY_SIZE_BYTES)){
             return true;
         } else {
@@ -77,10 +89,28 @@ bool read_log_entry(uint32_t addr){
     // Create data buffer
     uint8_t data_buf[LOG_ENTRY_SIZE_BYTES];
     flash_read_bytes(addr, data_buf, LOG_ENTRY_SIZE_BYTES);
-    // Write log entry to PC
+    uint8_t crc = make_crc8_tabled(BIG_PACKET, data_buf, LOG_ENTRY_SIZE_BYTES);
+    printf("Entry(%lu): ", addr);
+
+    // Check for valid data
+    uint8_t counter = 0;
     for(uint i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
-        rs232_putchar((char)data_buf[i]);
+        if(data_buf[i] == 0xFF){
+            counter++;
+        }
     }
+    if(counter == LOG_ENTRY_SIZE_BYTES){
+        printf("Empty flash space found. Exitting.");
+        return false;
+    }
+
+
+    // Write log entry to PC
+    printf("%02X ", BIG_PACKET);
+    for(uint i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
+        printf("%02X ", data_buf[i]);
+    }
+    printf("CRC: %02X\n", crc);
     return true;
 }
 
@@ -89,13 +119,13 @@ bool init_log(){
     prev_log_time = 0;
     prev_write_addr = 0x000000;
     if(spi_flash_init()){
-        if(flash_chip_erase()){
+        //if(flash_chip_erase()){ // Not needed since spi_flash_init() already calls a chiperase.
             log_init_done = true;
             return log_init_done;
-        } else {
-            printf("ERROR: Flash erase failed\n");
-            return false;
-        }
+        //} else {
+        //    printf("ERROR: Flash erase failed\n");
+        //    return false;
+        //}
     } else {
         printf("ERROR: SPI Flash initialization failed\n");
         return false;

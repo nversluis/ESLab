@@ -169,7 +169,7 @@ void run_control() // 250Hz
 			break;
 		case MANUAL:
 			//Map the received values directly to the motors.
-			printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+			//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			break;
 		case CALIBRATION:
@@ -191,7 +191,48 @@ void run_control() // 250Hz
 			QuadState = PANIC;
 			break;
 		case DUMPLOGS:
+			printf("Dumping logs:\n");
+			for(uint16_t i=0; i+LOG_ENTRY_SIZE_BYTES<FLASH_ADDR_LIMIT; i+=LOG_ENTRY_SIZE_BYTES){
+				if(!read_log_entry(i)){
+					break;
+				}
+			}
+			printf("\nDone Dumping logs.\n");
 			QuadState = PANIC;
+			break;
+		case SETNEWMODE:
+			// Do nothing if we want the same mode again.
+			if(PreviousMode == ModeToSet){
+				QuadState = PreviousMode;
+				break;
+			}
+
+			// Only go to DUMPLOGS and CALIBRATION from SAFE modes.
+			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION)){
+				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
+					QuadState = ModeToSet;
+					break;
+				}else{
+					QuadState = PreviousMode;
+					break;
+				}
+			}
+
+			// Don't allow any mode changes from PANIC or SAFE_NONZERO.
+			if(PreviousMode != PANIC && PreviousMode != PANIC_COUNTDOWN && PreviousMode != SAFE_NONZERO){
+				if(ModeToSet == MANUAL){
+					printf("Initiated MANUAL mode.\n");
+				}else if(ModeToSet == PANIC){
+					printf("Initiated PANIC mode.\n");
+				}else{
+					printf("Initiated 0x%02X mode.\n", ModeToSet);
+				}
+				QuadState = ModeToSet;
+				break;
+			}
+
+			// Assume all is normal.
+			QuadState = PreviousMode;
 			break;
 		default:
 			QuadState = PANIC;
@@ -201,18 +242,4 @@ void run_control() // 250Hz
 	}
 	// ae[0] = xxx, ae[1] = yyy etc etc
 	update_motors();
-	/*-------------------------------------------------------------------------------------
-	* Logger call
-	* Author: Niels Versluis
-	*------------------------------------------------------------------------------------*/
-	uint32_t cur_time = get_time_us();
-	// Only log when flash is initialized, no logging errors have occured, and log period
-	// has expired.
-	if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
-		prev_write_addr += LOG_ENTRY_SIZE_BYTES;
-		prev_log_time = cur_time;
-		log_err = !write_log(prev_write_addr, QuadState);
-	} else if (log_err){
-		printf("ERROR: Logging aborted!\n");
-	}
 }

@@ -34,6 +34,7 @@ void detect_term_input(char);
 #define ACCEL_OUT		0x95
 #define CON_PARAM		0x96
 #define CAL_GET			0x97
+#define BIG_PACKET		0x98
 	
 
 
@@ -51,6 +52,7 @@ void detect_term_input(char);
 #define HEIGHT          0x1A
 #define WIRELESS        0x1B
 #define DUMPLOGS		0x1C
+#define SETNEWMODE		0x2F
 
 //Some escape value
 #define ABORT			0x60
