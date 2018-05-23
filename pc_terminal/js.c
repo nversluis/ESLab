@@ -22,6 +22,7 @@
  */
 
 int fd;
+char BUTTON;
 struct js_event js;
 struct packet j_obj;
 int16_t	axis[6];
@@ -127,7 +128,7 @@ void send_j_packet()
 
 		/* check up on JS
 		 */
-	while (read(fd, &js, sizeof(struct js_event)) == 
+	while(read(fd, &js, sizeof(struct js_event)) == 
 	       			sizeof(struct js_event))  {
 		/* register data
 		 */
@@ -172,17 +173,131 @@ void send_j_packet()
 	printf("\n");
 	*/
 
+	if (button[0]){BUTTON='0';}
+	else if (button[1]){BUTTON='1';}
+	else if (button[2]){BUTTON='2';}
+	else if (button[3]){BUTTON='3';}
+	else if (button[4]){BUTTON='4';}
+	else if (button[5]){BUTTON='5';}
+	else if (button[6]){BUTTON='6';}
+	else if (button[7]){BUTTON='7';}
+	else if (button[8]){BUTTON='8';}
+	else {BUTTON='9';}
+
+	switch(BUTTON)
+	{
+		//safe mode
+		case '0':	j_obj.header=MODESET;
+				 	j_obj.data=PANIC;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering PANIC mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+
+		//panic mode 
+		case '1':	j_obj.header=MODESET;
+				 	j_obj.data=PANIC;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering PANIC mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+
+		//manual mode 
+		case '2':	j_obj.header=MODESET;
+				 	j_obj.data=MANUAL;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering Manual mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+				
+		//calibration mode 
+		case '3':	j_obj.header=MODESET;
+				 	j_obj.data=CALIBRATION;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering Calibration mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+				
+		//yaw control 
+		case '4':	j_obj.header=MODESET;
+				 	j_obj.data=YAWCONTROL;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering Yaw mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+				
+		//full control
+		case '5':	j_obj.header=MODESET;
+				 	j_obj.data=FULLCONTROL;
+				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+				 	//term_puts("Entering Full mode.....");
+					rs232_putchar(j_obj.header);
+				 	rs232_putchar(j_obj.data);
+				 	rs232_putchar(j_obj.crc8);
+					break;
+		default: break;			
+	}
+	/*
 	if (button[0] || button[1]){
 		//term_puts("Entering PANIC mode.....");			//If safe mode or panic mode button pressed, go to panic mode(which will automatically end up in safe mode)			
 		j_obj.header=MODESET;
 		j_obj.data=PANIC;
-		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								//TODO: compute CRC using function
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+		rs232_putchar(j_obj.header);
+		rs232_putchar(j_obj.data);
+		rs232_putchar(j_obj.crc8);										
+	}
+
+	if (button[2]){
+		//term_puts("Entering MANUAL mode.....");
+		j_obj.header=MODESET;
+		j_obj.data=MANUAL;
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
 		rs232_putchar(j_obj.header);
 		rs232_putchar(j_obj.data);
 		rs232_putchar(j_obj.crc8);
-		return;;											//TODO: convert into a function and replace with a return 
 	}
 
+	if (button[3]){
+		//printf("Entering Calibration mode.....");
+		j_obj.header=MODESET;
+		j_obj.data=CALIBRATION;
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+		rs232_putchar(j_obj.header);
+		rs232_putchar(j_obj.data);
+		rs232_putchar(j_obj.crc8);
+	}
+
+	if (button[4]){
+		//printf("Entering Yaw mode.....");
+		j_obj.header=MODESET;
+		j_obj.data=YAWCONTROL;
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+		rs232_putchar(j_obj.header);
+		rs232_putchar(j_obj.data);
+		rs232_putchar(j_obj.crc8);
+	}
+
+	if (button[5]){
+		//printf("Entering full mode.....");
+		j_obj.header=MODESET;
+		j_obj.data=FULLCONTROL;
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+		rs232_putchar(j_obj.header);
+		rs232_putchar(j_obj.data);
+		rs232_putchar(j_obj.crc8);
+	}
+	*/
 	make_j_packet();
 	
 	
