@@ -215,6 +215,7 @@ int main(int argc, char **argv)
 	 */
 	for (;;)
 	{
+		read_js_values();
 		if((start_time + 10) >= end_time){
 
 			if ((c = term_getchar_nb()) != -1){

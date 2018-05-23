@@ -39,23 +39,23 @@ bool write_log(uint32_t addr){
         array[12] = (ae[3] >> 8) & 0xff;
         /* MPU Data */
         // phi
-        array[13] = phi & 0xff;
-        array[14] = (phi >> 8) & 0xff;
+        array[13] = (phi-phi_o) & 0xff;
+        array[14] = ((phi-phi_o) >> 8) & 0xff;
         // theta
-        array[15] = theta & 0xff;
-        array[16] = (theta >> 8) & 0xff;
+        array[15] = (theta-theta_o) & 0xff;
+        array[16] = ((theta-theta_o) >> 8) & 0xff;
         // psi
-        array[17] = psi & 0xff;
-        array[18] = (psi >> 8) & 0xff;
+        array[17] = (psi-psi_o) & 0xff;
+        array[18] = ((psi-psi_o) >> 8) & 0xff;
         // sp
-        array[19] = sp & 0xff;
-        array[20] = (sp >> 8) & 0xff;
+        array[19] = (sp-sp_o) & 0xff;
+        array[20] = ((sp-sp_o) >> 8) & 0xff;
         // sq
-        array[21] = sq & 0xff;
-        array[22] = (sq >> 8) & 0xff;
+        array[21] = (sq-sq_o) & 0xff;
+        array[22] = ((sq-sq_o) >> 8) & 0xff;
         // sr
-        array[23] = sr & 0xff;
-        array[24] = (sr >> 8) & 0xff;
+        array[23] = (sr-sr_o) & 0xff;
+        array[24] = ((sr-sr_o) >> 8) & 0xff;
 
         /* Battery voltage */
         array[25] = bat_volt & 0xff;

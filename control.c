@@ -12,6 +12,7 @@
 
 #include "in4073.h"
 #include "pc_terminal/protocol.h"
+#include <stdlib.h>
 
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
@@ -124,6 +125,7 @@ bool near_zero(void){
 void run_control() // 250Hz
 {
 	static uint16_t panic_counter = 0;
+	uint32_t cur_time = 0;
 
 	switch(QuadState){
 		case SAFE:
@@ -172,8 +174,29 @@ void run_control() // 250Hz
 			//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			break;
+		case CALIBRATION_ENTER:
+			printf("Initiate CALIBRATION mode.\n");
+			CalibrationStartTime = get_time_us();
+			phi_o = phi;
+			theta_o = theta;
+			psi_o = psi;
+			sp_o = sp;
+			sq_o = sq;
+			sr_o = sr;
+			QuadState = CALIBRATION;
 		case CALIBRATION:
-			QuadState = PANIC;
+			cur_time = get_time_us();
+			if(cur_time < CalibrationStartTime + CALIBRATION_TIME_US){
+				phi_o -= ((phi_o - phi) >> 2);
+				theta_o -= ((theta_o - theta) >> 2);
+				psi_o -= ((psi_o - psi) >> 2);
+				sp_o -= ((sp_o - sp) >> 2);
+				sq_o -= ((sq_o - sq) >> 2);
+				sr_o -= ((sr_o - sr) >> 2);
+			}else{
+				printf("Calibration done. Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", phi_o, theta_o, psi_o, sp_o, sq_o, sr_o);
+				QuadState = PANIC;
+			}
 			break;
 		case YAWCONTROL:
 			QuadState = PANIC;
@@ -211,12 +234,16 @@ void run_control() // 250Hz
 			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION)){
 				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
 					QuadState = ModeToSet;
+					if(ModeToSet == CALIBRATION){
+						QuadState = CALIBRATION_ENTER;
+					}
 					break;
 				}else{
 					QuadState = PreviousMode;
 					break;
 				}
 			}
+
 
 			// Don't allow any mode changes from PANIC or SAFE_NONZERO.
 			if(PreviousMode != PANIC && PreviousMode != PANIC_COUNTDOWN && PreviousMode != SAFE_NONZERO){

@@ -265,8 +265,8 @@ int main(void)
 			}
 			run_control();
 
-//			adc_request_sample();
-//			read_baro();
+			adc_request_sample();
+			read_baro();
 //
 //			printf("%10ld | ", get_time_us());
 //			printf("%3d %3d %3d %3d | ",ae[0],ae[1],ae[2],ae[3]);

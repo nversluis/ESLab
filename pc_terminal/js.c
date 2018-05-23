@@ -106,28 +106,15 @@ void make_j_packet(){
 	
 
 		//printf("\n<exit>\n");
-	}
+}
 
-
-void send_j_packet()
-{
-	
-
+void read_js_values(){
 	unsigned int range = 65535;
 	unsigned int new_range = 255;
 	//unsigned int max = 32767;
 	int min = -32768;
 	int new_min = -128;
-	//while (1) {
 
-
-		/* simulate work
-		 */
-	//	mon_delay_ms(300);
-	//	t = mon_time_ms();
-
-		/* check up on JS
-		 */
 	while(read(fd, &js, sizeof(struct js_event)) == 
 	       			sizeof(struct js_event))  {
 		/* register data
@@ -149,6 +136,24 @@ void send_j_packet()
 		perror("\njs: error reading (EAGAIN)");
 		exit (1);
 	}
+}
+
+
+void send_j_packet()
+{
+	
+
+	//while (1) {
+
+
+		/* simulate work
+		 */
+	//	mon_delay_ms(300);
+	//	t = mon_time_ms();
+
+		/* check up on JS
+		 */
+	read_js_values();
 
 	new_axis[0] = temp_axis[3];
 	new_axis[1] = temp_axis[0];
