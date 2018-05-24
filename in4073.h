@@ -129,6 +129,7 @@ void ble_send(void);
 #define LOG_PERIOD_US			10000		// Amount of microseconds between logs
 uint32_t prev_log_time;
 uint32_t write_addr;
+uint32_t addr_before_overflow;	
 int8_t curr_flash_block;					// 4KB flash block currently being written to
 bool log_init_done;
 bool log_err;

@@ -311,6 +311,7 @@ int main(void)
 					// If there is flash overflow
 					if(write_addr > FLASH_ADDR_LIMIT){
 						// Wrap around
+						addr_before_overflow = write_addr;
 						write_addr = 0;
 						flash_overflow = true;
 						printf("WARNING: Flash overflow detected: old data will be erased!");

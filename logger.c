@@ -129,6 +129,7 @@ bool read_log_entry(uint32_t addr){
 bool init_log(){
     prev_log_time = 0;
     write_addr = 0x000000;
+    addr_before_overflow = 0x000000;
     curr_flash_block = -1;
     flash_overflow = false;
     if(spi_flash_init()){
