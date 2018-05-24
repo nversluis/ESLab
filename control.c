@@ -268,6 +268,8 @@ void run_control() // 250Hz
 			printf("Dumping logs:\n");
 			for(uint16_t i=0; i+LOG_ENTRY_SIZE_BYTES<FLASH_ADDR_LIMIT; i+=LOG_ENTRY_SIZE_BYTES){
 				if(!read_log_entry(i)){
+					printf("\nDone Dumping logs.\n");
+					QuadState = PANIC;
 					break;
 				}
 			}

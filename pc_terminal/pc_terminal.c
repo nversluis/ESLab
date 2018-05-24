@@ -228,11 +228,13 @@ int main(int argc, char **argv)
 						p_obj.header=MODESET;
 						p_obj.data=PANIC;
 						//TODO: compute crc and add to packet
-						p_obj.crc8=0x00;
+						p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
 						//TODO: implement queue to send packets
 						rs232_putchar(p_obj.header);
 						rs232_putchar(p_obj.data);
 						rs232_putchar(p_obj.crc8);
+						term_putchar("Escape found.");
+						sleep(1);
 						break;
 					}
 				}else{

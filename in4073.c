@@ -20,7 +20,7 @@
 #include "crc.h"
 
 #define MAX_PACKET_SIZE 10
-#define BATTERY_CONNECTED 1
+#define BATTERY_CONNECTED 0
 #define PACKET_DEBUG 0
 
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
