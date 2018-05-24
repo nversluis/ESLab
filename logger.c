@@ -8,11 +8,15 @@
 #include <stdbool.h>
 #include "crc.h"
 
-#define LOG_DUMP_DEBUG 0
+#define LOG_DUMP_DEBUG 1
 
 // Write relevant log data to the flash memory at the specified address
 // Returns true on success, false on failure
 bool write_log(uint32_t addr){
+    if(!log_init_done){
+        printf("ERROR: Flash not initalized yet!");
+        return false;
+    }
     if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
         printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
@@ -82,7 +86,7 @@ bool write_log(uint32_t addr){
 // Push all log data to the PC
 // Returns true on success, false on failure
 bool read_log_entry(uint32_t addr){
-    if(!spi_flash_init()){
+    if(!log_init_done){
         printf("ERROR: SPI Flash initialization failed\n");
         return false;
     }
@@ -100,7 +104,7 @@ bool read_log_entry(uint32_t addr){
         }
     }
     if(counter == LOG_ENTRY_SIZE_BYTES){
-        printf("Empty flash space found. Exitting.");
+        printf("Empty flash space found. Exiting.");
         return false;
     }
 
@@ -119,13 +123,8 @@ bool init_log(){
     prev_log_time = 0;
     prev_write_addr = 0x000000;
     if(spi_flash_init()){
-        //if(flash_chip_erase()){ // Not needed since spi_flash_init() already calls a chiperase.
-            log_init_done = true;
-            return log_init_done;
-        //} else {
-        //    printf("ERROR: Flash erase failed\n");
-        //    return false;
-        //}
+        log_init_done = true;
+        return log_init_done;
     } else {
         printf("ERROR: SPI Flash initialization failed\n");
         return false;

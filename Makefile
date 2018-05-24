@@ -221,6 +221,21 @@ clean:
 cleanobj:
 	$(RM) $(BUILD_DIRECTORIES)/*.o
 
+ifeq ($(OS),Windows_NT)
+upload: default
+	python ./dfu_serial/serial_dfu.py -p COM4 _build/in4073.bin
+
+pc: 
+	#cd pc_terminal/; make
+
+pc-run: 
+	#cd pc_terminal/; make run
+	
+upload-run: default pc
+	python ./dfu_serial/serial_dfu.py -p COM4 _build/in4073.bin
+	#cd pc_terminal/; make run
+	cmd //C "C:\Program Files\PuTTY\putty.exe" -load "ESL"
+else
 upload: default
 	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
 
@@ -233,3 +248,5 @@ pc-run:
 upload-run: default pc
 	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
 	cd pc_terminal/; sudo make run
+endif
+
