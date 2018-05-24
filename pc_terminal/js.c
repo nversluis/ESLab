@@ -223,7 +223,7 @@ void send_j_packet()
 				
 		//calibration mode 
 		case '3':	j_obj.header=MODESET;
-				 	j_obj.data=CALIBRATION;
+				 	j_obj.data=CALIBRATION_ENTER;
 				 	j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
 				 	//term_puts("Entering Calibration mode.....");
 					rs232_putchar(j_obj.header);

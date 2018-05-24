@@ -179,6 +179,37 @@ void process_packet(){
 }
 
 
+
+/*-----------------------------------------------------------------------------------------
+* check_battery() -	function to check battery voltage and if voltage is low move to panic
+* 						mode.
+*
+* Author: Himanshu Shah
+* Date : 23/05/18
+*------------------------------------------------------------------------------------------
+*/
+
+void check_battery(){
+	adc_request_sample();
+	if((bat_volt <= 1050 && QuadState != SAFE) && (bat_volt <= 1050 && QuadState != SAFE_NONZERO)) {
+		low_battery=true;
+		nrf_gpio_pin_toggle(RED);
+		printf("Battery Critically low!!\n");
+		QuadState=PANIC;
+	}
+	else if(bat_volt > 1050 && bat_volt <=1100){
+		printf("Caution!! Battery voltage low!!");
+		low_battery=false;
+	}
+	else if(bat_volt > 1100){
+		low_battery=false;
+	}
+	else{
+		printf("Battery critically low(%d volts)!! Pleae change the battery and restart......\n",bat_volt);
+		low_battery=true; 
+	}
+}
+
 /*------------------------------------------------------------------
  * process_key -- process command keys
  *------------------------------------------------------------------
@@ -223,6 +254,7 @@ void process_key(uint8_t c)
 	}
 }
 
+
 /*------------------------------------------------------------------
  * main -- everything you need is here :)
  *------------------------------------------------------------------
@@ -249,8 +281,11 @@ int main(void)
 
 	uint32_t counter = 0;
 	demo_done = false;
+	low_battery=false;
 
-	while (!demo_done)
+	check_battery();
+
+	while (!demo_done && !low_battery)
 	{
 		
 		process_packet();
@@ -299,6 +334,7 @@ int main(void)
 			run_filters();
 		}
 		
+		check_battery();
 	}	
 
 	printf("\n\t Goodbye \n\n");

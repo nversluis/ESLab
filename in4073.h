@@ -101,6 +101,8 @@ void baro_init(void);
 
 // ADC
 uint16_t bat_volt;
+bool low_battery;
+void check_battery();
 void adc_init(void);
 void adc_request_sample(void);
 

@@ -14,6 +14,7 @@
 #include "pc_terminal/protocol.h"
 #include <stdlib.h>
 
+
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
 * 						corresponding rotor rpm values.
@@ -24,21 +25,23 @@
 */
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 	int16_t rotor[4];
-	rotor[0] = (int16_t)((int16_t)(4*lift) + 2*pitch - yaw);
-	rotor[1] = (int16_t)((int16_t)(4*lift) - 2*roll + yaw);
-	rotor[2] = (int16_t)((int16_t)(4*lift) - 2*pitch - yaw);
-	rotor[3] = (int16_t)((int16_t)(4*lift) + 2*roll + yaw);
+	rotor[0] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) + 2*(pitch + k_LRPY[2]) - (yaw + k_LRPY[3]));
+	rotor[1] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) - 2*(roll + k_LRPY[1]) + (yaw + k_LRPY[3]));
+	rotor[2] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) - 2*(pitch + k_LRPY[2]) - (yaw + k_LRPY[3]));
+	rotor[3] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) + 2*(roll + k_LRPY[1]) + (yaw + k_LRPY[3]));
 
 	for(uint8_t i=0; i<4; i++){
 		if(rotor[i] < 0){
 			rotor[i] = 0;   			
-		}/*
+		}
+		/*
 		else{
 			rotor[i] = (int)sqrt(rotor[i]);
 		}*/
-	}
+	} 
 
 	for(uint8_t i=0; i<4; i++){
+		if(lift<10){rotor[i]=0;}
 		if(lift > 10 && rotor[i] < 200){
 			if(rotor[i] > 0){
 				rotor[i] = 200;
@@ -173,6 +176,7 @@ void run_control() // 250Hz
 			//Map the received values directly to the motors.
 			//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+			//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 			break;
 		case CALIBRATION_ENTER:
 			printf("Initiate CALIBRATION mode.\n");
