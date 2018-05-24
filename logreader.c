@@ -5,7 +5,7 @@
  * Author: Niels Versluis - 4227646
  *----------------------------------------------------------------*/
 
-#include "in4074.h"
+#include "in4073.h"
 #define LOG_FILENAME "log.txt"
 bool read_log_to_file(){
     // Open log file to write to

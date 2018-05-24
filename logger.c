@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include "crc.h"
 
-#define LOG_DUMP_DEBUG 1
+#define LOG_DUMP_DEBUG 0
 
 // Write relevant log data to the flash memory at the specified address
 // Returns true on success, false on failure
@@ -17,6 +17,7 @@ bool write_log(uint32_t addr){
         printf("ERROR: Flash not initalized yet!");
         return false;
     }
+    // If address out of bounds
     if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
         printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
@@ -25,45 +26,45 @@ bool write_log(uint32_t addr){
         uint8_t array[LOG_ENTRY_SIZE_BYTES];
         /* Time */
         uint32_t t_cur = get_time_us();
-        array[0] = t_cur & 0xff;
-        array[1] = (t_cur >> (8*1)) & 0xff;
-        array[2] = (t_cur >> (8*2)) & 0xff;
-        array[3] = (t_cur >> (8*3)) & 0xff;
+        array[0] = t_cur & 0xFF;
+        array[1] = (t_cur >> (8*1)) & 0xFF;
+        array[2] = (t_cur >> (8*2)) & 0xFF;
+        array[3] = (t_cur >> (8*3)) & 0xFF;
         /* State */
         //array[4] = state;
         array[4] = QuadState;
         /* Motor values */
-        array[5] = ae[0] & 0xff;
-        array[6] = (ae[0] >> 8) & 0xff;
-        array[7] = ae[1] & 0xff;
-        array[8] = (ae[1] >> 8) & 0xff;
-        array[9] = ae[2] & 0xff;
-        array[10] = (ae[2] >> 8) & 0xff;
-        array[11] = ae[3] & 0xff;
-        array[12] = (ae[3] >> 8) & 0xff;
+        array[5] = ae[0] & 0xFF;
+        array[6] = (ae[0] >> 8) & 0xFF;
+        array[7] = ae[1] & 0xFF;
+        array[8] = (ae[1] >> 8) & 0xFF;
+        array[9] = ae[2] & 0xFF;
+        array[10] = (ae[2] >> 8) & 0xFF;
+        array[11] = ae[3] & 0xFF;
+        array[12] = (ae[3] >> 8) & 0xFF;
         /* MPU Data */
         // phi
-        array[13] = (phi-phi_o) & 0xff;
-        array[14] = ((phi-phi_o) >> 8) & 0xff;
+        array[13] = (phi-phi_o) & 0xFF;
+        array[14] = ((phi-phi_o) >> 8) & 0xFF;
         // theta
-        array[15] = (theta-theta_o) & 0xff;
-        array[16] = ((theta-theta_o) >> 8) & 0xff;
+        array[15] = (theta-theta_o) & 0xFF;
+        array[16] = ((theta-theta_o) >> 8) & 0xFF;
         // psi
-        array[17] = (psi-psi_o) & 0xff;
-        array[18] = ((psi-psi_o) >> 8) & 0xff;
+        array[17] = (psi-psi_o) & 0xFF;
+        array[18] = ((psi-psi_o) >> 8) & 0xFF;
         // sp
-        array[19] = (sp-sp_o) & 0xff;
-        array[20] = ((sp-sp_o) >> 8) & 0xff;
+        array[19] = (sp-sp_o) & 0xFF;
+        array[20] = ((sp-sp_o) >> 8) & 0xFF;
         // sq
-        array[21] = (sq-sq_o) & 0xff;
-        array[22] = ((sq-sq_o) >> 8) & 0xff;
+        array[21] = (sq-sq_o) & 0xFF;
+        array[22] = ((sq-sq_o) >> 8) & 0xFF;
         // sr
-        array[23] = (sr-sr_o) & 0xff;
-        array[24] = ((sr-sr_o) >> 8) & 0xff;
+        array[23] = (sr-sr_o) & 0xFF;
+        array[24] = ((sr-sr_o) >> 8) & 0xFF;
 
         /* Battery voltage */
-        array[25] = bat_volt & 0xff;
-        array[26] = (bat_volt >> 8) & 0xff;
+        array[25] = bat_volt & 0xFF;
+        array[26] = (bat_volt >> 8) & 0xFF;
 
         #if LOG_DUMP_DEBUG == 1
         printf("Log Written: ");
@@ -121,7 +122,9 @@ bool read_log_entry(uint32_t addr){
 // Initialize the logfile
 bool init_log(){
     prev_log_time = 0;
-    prev_write_addr = 0x000000;
+    write_addr = 0x000000;
+    curr_flash_block = -1;
+    flash_overflow = false;
     if(spi_flash_init()){
         log_init_done = true;
         return log_init_done;

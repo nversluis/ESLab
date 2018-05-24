@@ -277,7 +277,6 @@ int main(void)
 	log_init_done = init_log();
 	log_err = false;
 	bool log_err_change = false;
-	prev_write_addr = 0;
 
 	prev_log_time = get_time_us();
 
@@ -307,9 +306,26 @@ int main(void)
 				// has expired.
 				if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
 					prev_log_time = cur_time;
-					log_err = !write_log(prev_write_addr);
-					prev_write_addr += LOG_ENTRY_SIZE_BYTES;
-					//printf("Entry logged correctly.\n");
+					log_err = !write_log(write_addr);
+					write_addr += LOG_ENTRY_SIZE_BYTES;
+					// If there is flash overflow
+					if(write_addr > FLASH_ADDR_LIMIT){
+						// Wrap around
+						write_addr = 0;
+						flash_overflow = true;
+						printf("WARNING: Flash overflow detected: old data will be erased!");
+					}
+					// Erase flash sector if necessary
+					if(flash_overflow){
+						uint8_t requested_block = (uint8_t)floor(write_addr / 4000);
+						if(curr_flash_block != requested_block){
+							if(flash_4k_sector_erase(requested_block)){
+								curr_flash_block = requested_block;
+							} else {
+								printf("ERROR: 4k Sector erase failed.\n");
+							}
+						}
+					}
 				} else if (!log_err_change && log_err){
 					printf("ERROR: Logging aborted!\n");
 					log_err_change = true;
