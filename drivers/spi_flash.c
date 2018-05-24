@@ -28,6 +28,7 @@
 #define WREN            0x06
 #define EWSR            0x50
 #define CHIP_ERASE      0x60
+#define SECTOR_ERASE    0x20
 #define AAI             0xAF 
 
 #define SPI_FREQ_4MBPS        0x40
@@ -411,6 +412,27 @@ bool flash_chip_erase(void)
 	}
 	bool result = spi_master_tx(SPI_MODULE, 1, &tx_data);
 	nrf_delay_ms(100);
+	return result;
+}
+/**
+* Erases a 4k sector of the flash
+* Author: Niels Versluis - 4227646
+**/
+bool flash_4k_sector_erase(uint8_t sector_number)
+{
+    if(sector_number > 31){
+        printf("ERROR: Sector erase out of bounds\n");
+        return false;
+    }
+	if(!flash_write_enable())
+	{
+        printf("ERROR: Flash write not enabled\n");
+		return false;
+	}
+    uint32_t addr = (uint32_t)sector_number * (uint32_t)0xFA0; // Sector number * 4000
+    uint8_t tx_data[4] = {SECTOR_ERASE, (addr >> (8*2)) & 0xFF, (addr >> (8*1)) & 0xFF, (addr & 0xFF)};
+	bool result = spi_master_tx(SPI_MODULE, 4, tx_data);
+	nrf_delay_ms(25);  // Tse from the flash data sheet
 	return result;
 }
 

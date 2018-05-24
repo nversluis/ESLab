@@ -21,8 +21,10 @@
 #include "app_util_platform.h"
 #include <math.h>
 #include "pc_terminal/protocol.h"
+#include <stdbool.h>
+#include "crc.h"
 
-#define RED		22
+#define RED			22
 #define YELLOW		24
 #define GREEN		28
 #define BLUE		30
@@ -126,11 +128,14 @@ void ble_send(void);
 #define LOG_ENTRY_SIZE_BYTES  	27          // Amount of bytes in a log entry
 #define LOG_PERIOD_US			10000		// Amount of microseconds between logs
 uint32_t prev_log_time;
-uint32_t prev_write_addr;
+uint32_t write_addr;
+int8_t curr_flash_block;					// 4KB flash block currently being written to
 bool log_init_done;
 bool log_err;
+bool flash_overflow;
 bool write_log(uint32_t address);
 bool init_log();
 bool read_log_entry(uint32_t addr);
+bool flash_4k_sector_erase(uint8_t sector_number);
 
 #endif // IN4073_H__
