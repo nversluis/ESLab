@@ -10,22 +10,25 @@
 bool read_log_to_file(){
     // Open log file to write to
     FILE *f = fopen(LOG_FILENAME, "w");
-    if(f = NULL){
-        printf("ERROR: Could not open log file");
-        return false;
+    if(f == NULL){
+        printf("INFO: Could not open log file, creating new file with name %s\n", LOG_FILENAME);
+        f = fopen(LOG_FILENAME, "wb");
+        if(f == NULL){
+            printf("ERROR: Could not create new log file\n");
+            return false;
+        }
     }
     uint32_t addr = 0x000000;
     bool read_ok = true;
     // Read log data from flash per entry
     while(((addr + LOG_ENTRY_SIZE_BYTES) <= FLASH_ADDR_LIMIT) && read_ok){
-        // Make controller output entry to RS232
-        // read_ok = read_log_entry(addr);
-        // Read entry from RS232
+        // TODO: Make controller output data in a synchronized manner
         int i = 0;
         while(i < LOG_ENTRY_SIZE_BYTES){
-            char read_char = rs232_getchar_nb();
+            // TODO: Read character sent by controller
+            char read_char = 'a';
             if(read_char != -1){
-                fprint(f, "%c", read_char);
+                fprintf(f, "%c", read_char);
                 i++;
             }
         }
@@ -35,6 +38,8 @@ bool read_log_to_file(){
         addr += LOG_ENTRY_SIZE_BYTES;
     }
     if (!read_ok){
-        printf("ERROR: Log read failed!");
+        printf("ERROR: Log read failed!\n");
+        return false;
     }
+    return true;
 }

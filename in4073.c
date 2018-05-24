@@ -311,7 +311,7 @@ int main(void)
  		if (check_timer_flag()) 
 		{
 			
-			// if (counter++%20 == 0){
+			if (counter++%20 == 0){
 			// 	nrf_gpio_pin_toggle(BLUE);
 
 				/*-------------------------------------------------------------------------------------
