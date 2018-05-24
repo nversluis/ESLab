@@ -99,23 +99,29 @@ bool read_log_entry(uint32_t addr){
 
     // Check for valid data
     uint8_t counter = 0;
-    for(uint i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
+    for(uint8_t i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
         if(data_buf[i] == 0xFF){
             counter++;
         }
     }
     if(counter == LOG_ENTRY_SIZE_BYTES){
-        printf("Empty flash space found. Exiting.");
+        printf("Empty flash space found. Exiting.\n");
         return false;
     }
 
 
     // Write log entry to PC
+    //printf("%c ", BIG_PACKET);
     printf("%02X ", BIG_PACKET);
-    for(uint i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
+    for(uint8_t i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
+        //printf("%c", data_buf[i]);
         printf("%02X ", data_buf[i]);
+        nrf_delay_ms(1);
     }
+    nrf_delay_ms(1);
+    //printf("%c", crc);
     printf("CRC: %02X\n", crc);
+    nrf_delay_ms(1);
     return true;
 }
 
