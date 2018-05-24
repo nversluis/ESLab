@@ -138,6 +138,13 @@ void read_js_values(){
 	}
 	if (errno != EAGAIN) {
 		perror("\njs: error reading (EAGAIN)");
+		j_obj.header=MODESET;
+		j_obj.data=PANIC;
+		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
+		//term_puts("Entering PANIC mode.....");
+		rs232_putchar(j_obj.header);
+		rs232_putchar(j_obj.data);
+		rs232_putchar(j_obj.crc8);
 		exit (1);
 	}
 }
