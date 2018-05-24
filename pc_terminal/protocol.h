@@ -24,6 +24,7 @@ void detect_term_input(char);
 #define K_LIFT			0x82
 #define K_YAW			0x83
 #define K_PITCH			0x84
+#define K_YAWP          0x85
 
 // Logging packets
 #define SYSTIME			0x90
@@ -58,8 +59,8 @@ void detect_term_input(char);
 //Some escape value
 #define ABORT			0x60
 
-#define DECREASE		-1
-#define INCREASE		1
+#define DECREASE		-10
+#define INCREASE		10
 
 struct packet{
     uint8_t header;

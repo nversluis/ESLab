@@ -87,6 +87,16 @@ void detect_term_input(char c){
                  p_obj.data=INCREASE;
                  data_detected=1;
                  break;
+        case 'u':
+                 p_obj.header=K_YAWP;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'j': 
+                 p_obj.header=K_YAWP;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
         case 'A':
                  p_obj.header=K_PITCH;
                  p_obj.data=DECREASE;
