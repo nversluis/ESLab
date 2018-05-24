@@ -44,19 +44,28 @@ void process_packet(){
 	uint8_t readByte = 0;
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;
+	uint8_t dat_temp = 0;
+
 
 	if(rx_queue.count > 0){
 		readByte = dequeue(&rx_queue);
-		//printf("Readbyte: 0x%02X\n", readByte);
+		//printf("Readbyte: 0x%02X, car is 0x%02X\n", readByte, PING);
+		if(readByte == PING){
+			uart_put(PING);
+			//printf("Pin received.\n");
+			inPacketState = 0;
+		}
+		/*
 		switch(inPacketState){
 			case 0:
-				// Check if it's a header byte
-				if(readByte == 'h'){ // Test packet
-					headerByte = readByte;
-					totalBytesToRead = 8;
-					headerFound = true;
+				if(readByte == PING){
+					uart_put(PING);
+					//printf("Pin received.\n");
+					inPacketState = 0;
+					break;
 				}
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_YAWP || readByte == K_PITCH){
+				// Check if it's a header byte
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_YAWP || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
@@ -153,6 +162,9 @@ void process_packet(){
 							break;
 						case K_YAWP:
 							k_LRPY[4]+=(uint8_t)inPacketBuffer[0];
+						case PING_DATCRC:
+							dat_temp = PING_DATCRC;
+							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
 						default:
 							//For now just return the packet
 							printf("Packet: ");
@@ -171,10 +183,7 @@ void process_packet(){
 			default:
 				inPacketState = 0;
 				break;
-		}
-	}else{
-		//printf("No byte found.\n");
-		//nrf_delay_ms(1);
+		}*/
 	}
 }
 
@@ -272,7 +281,7 @@ int main(void)
 	baro_init();
 	spi_flash_init();
 	adc_request_sample();
-	nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
+	//nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
 	//ble_init();
 	log_init_done = init_log();
 	log_err = false;
@@ -289,32 +298,40 @@ int main(void)
 	}
 	while (!demo_done && !low_battery)
 	{
-		
-		process_packet();
+		// if(rx_queue.count > 0){
+		// 	uint8_t readByte = 0;
+		// 	readByte = dequeue(&rx_queue);
+		// 	if(readByte == PING){
+		// 		uart_put(PING);
+		// 	}
+		// }
+
+		// process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
 //
-		if (check_timer_flag()) 
+ 		if (check_timer_flag()) 
 		{
-			if (counter++%20 == 0){
-				nrf_gpio_pin_toggle(BLUE);
+			
+			// if (counter++%20 == 0){
+			// 	nrf_gpio_pin_toggle(BLUE);
 
-				/*-------------------------------------------------------------------------------------
-				* Logger call
-				* Author: Niels Versluis
-				*------------------------------------------------------------------------------------*/
-				uint32_t cur_time = get_time_us();
-				// Only log when flash is initialized, no logging errors have occured, and log period
-				// has expired.
-				if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
-					prev_log_time = cur_time;
-					log_err = !write_log(prev_write_addr);
-					prev_write_addr += LOG_ENTRY_SIZE_BYTES;
-					//printf("Entry logged correctly.\n");
-				} else if (!log_err_change && log_err){
-					printf("ERROR: Logging aborted!\n");
-					log_err_change = true;
-				}
-			}
+			// 	/*-------------------------------------------------------------------------------------
+			// 	* Logger call
+			// 	* Author: Niels Versluis
+			// 	*------------------------------------------------------------------------------------*/
+			// 	uint32_t cur_time = get_time_us();
+			// 	// Only log when flash is initialized, no logging errors have occured, and log period
+			// 	// has expired.
+			// 	if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
+			// 		prev_log_time = cur_time;
+			// 		log_err = !write_log(prev_write_addr);
+			// 		prev_write_addr += LOG_ENTRY_SIZE_BYTES;
+			// 		//printf("Entry logged correctly.\n");
+			// 	} else if (!log_err_change && log_err){
+			// 		printf("ERROR: Logging aborted!\n");
+			// 		log_err_change = true;
+			// 	}
+			// }
 
 			if(counter%200 == 0){
 				adc_request_sample();
@@ -337,8 +354,8 @@ int main(void)
 			// printf("%6d %6d %6d | ", sp, sq, sr);
 			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
 //
-			clear_timer_flag();
-		}
+ 			clear_timer_flag();
+ 		}
 //
 		
 		if (check_sensor_int_flag()) 
