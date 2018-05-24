@@ -34,6 +34,7 @@ uint8_t PreviousMode;
 uint32_t CalibrationStartTime;
 #define CALIBRATION_TIME_US 3000000
 int8_t LRPY[4];
+int8_t k_LRPY[7];
 
 bool demo_done;
 

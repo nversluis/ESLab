@@ -56,7 +56,7 @@ void process_packet(){
 					totalBytesToRead = 8;
 					headerFound = true;
 				}
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_PITCH){
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_YAWP || readByte == K_PITCH){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
@@ -138,6 +138,21 @@ void process_packet(){
 							LRPY[2] = (int8_t)inPacketBuffer[2];
 							LRPY[3] = (int8_t)inPacketBuffer[3];
 							break;
+						case K_LIFT:
+							k_LRPY[0]=(uint8_t)inPacketBuffer[0];
+							//printf("key_lift=%02X",k_LRPY[0]);
+							break;
+						case K_ROLL:
+							k_LRPY[1]=(uint8_t)inPacketBuffer[0];
+							break;
+						case K_PITCH:
+							k_LRPY[2]=(uint8_t)inPacketBuffer[0];
+							break;
+						case K_YAW:
+							k_LRPY[3]=(uint8_t)inPacketBuffer[0];
+							break;
+						case K_YAWP:
+							k_LRPY[4]=(uint8_t)inPacketBuffer[0];
 						default:
 							//For now just return the packet
 							printf("Packet: ");
