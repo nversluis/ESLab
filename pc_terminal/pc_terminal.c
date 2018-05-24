@@ -254,8 +254,8 @@ int main(int argc, char **argv)
 		
 		}else{
 			ftime(&time_buffer);
-			start_time=time_buffer.time*1000 + time_buffer.millitm;
 			end_time = start_time;
+			start_time=time_buffer.time*1000 + time_buffer.millitm;
 			send_j_packet();
 		}
 		//usleep(10000)
