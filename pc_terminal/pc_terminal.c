@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 					if((c2 = term_getchar_nb()) == -1){
 						struct packet p_obj;
 						p_obj.header=MODESET;
-						p_obj.data=ABORT;
+						p_obj.data=PANIC;
 						//TODO: compute crc and add to packet
 						p_obj.crc8=0x00;
 						//TODO: implement queue to send packets
