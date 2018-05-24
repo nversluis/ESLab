@@ -55,7 +55,7 @@ void process_packet(){
 			//printf("Pin received.\n");
 			inPacketState = 0;
 		}
-		/*
+		
 		switch(inPacketState){
 			case 0:
 				if(readByte == PING){
@@ -183,7 +183,7 @@ void process_packet(){
 			default:
 				inPacketState = 0;
 				break;
-		}*/
+		}
 	}
 }
 

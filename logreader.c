@@ -7,16 +7,13 @@
 
 #include "in4073.h"
 #define LOG_FILENAME "log.txt"
+
 bool read_log_to_file(){
-    // Open log file to write to
+    // Create log file. Overwrite if already exists
     FILE *f = fopen(LOG_FILENAME, "w");
     if(f == NULL){
-        printf("INFO: Could not open log file, creating new file with name %s\n", LOG_FILENAME);
-        f = fopen(LOG_FILENAME, "wb");
-        if(f == NULL){
-            printf("ERROR: Could not create new log file\n");
-            return false;
-        }
+        printf("ERROR: Could not create log file");      
+        return false;
     }
     uint32_t addr = 0x000000;
     bool read_ok = true;

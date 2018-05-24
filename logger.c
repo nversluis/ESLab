@@ -31,7 +31,6 @@ bool write_log(uint32_t addr){
         array[2] = (t_cur >> (8*2)) & 0xFF;
         array[3] = (t_cur >> (8*3)) & 0xFF;
         /* State */
-        //array[4] = state;
         array[4] = QuadState;
         /* Motor values */
         array[5] = ae[0] & 0xFF;
@@ -61,7 +60,6 @@ bool write_log(uint32_t addr){
         // sr
         array[23] = (sr-sr_o) & 0xFF;
         array[24] = ((sr-sr_o) >> 8) & 0xFF;
-
         /* Battery voltage */
         array[25] = bat_volt & 0xFF;
         array[26] = (bat_volt >> 8) & 0xFF;
@@ -88,7 +86,7 @@ bool write_log(uint32_t addr){
 // Returns true on success, false on failure
 bool read_log_entry(uint32_t addr){
     if(!log_init_done){
-        printf("ERROR: SPI Flash initialization failed\n");
+        printf("ERROR: Log not initialized\n");
         return false;
     }
     // Create data buffer
@@ -105,7 +103,7 @@ bool read_log_entry(uint32_t addr){
         }
     }
     if(counter == LOG_ENTRY_SIZE_BYTES){
-        printf("Empty flash space found. Exiting.\n");
+        printf("INFO: Empty flash space found.\n");
         return false;
     }
 
