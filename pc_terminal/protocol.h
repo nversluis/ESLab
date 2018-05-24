@@ -59,6 +59,8 @@ void detect_term_input(char);
 //Some escape value
 #define ABORT			0x60
 
+#define INCREASEPROP    1
+#define DECREASEPROP    -1
 #define DECREASE		-10
 #define INCREASE		10
 

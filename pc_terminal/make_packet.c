@@ -89,12 +89,12 @@ void detect_term_input(char c){
                  break;
         case 'u':
                  p_obj.header=K_YAWP;
-                 p_obj.data=INCREASE;
+                 p_obj.data=INCREASEPROP;
                  data_detected=1;
                  break;
         case 'j': 
                  p_obj.header=K_YAWP;
-                 p_obj.data=DECREASE;
+                 p_obj.data=DECREASEPROP;
                  data_detected=1;
                  break;
         case 'A':

@@ -20,7 +20,7 @@
 #include "crc.h"
 
 #define MAX_PACKET_SIZE 10
-
+#define BATTERY_CONNECTED 0
 #define PACKET_DEBUG 0
 
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
@@ -139,20 +139,20 @@ void process_packet(){
 							LRPY[3] = (int8_t)inPacketBuffer[3];
 							break;
 						case K_LIFT:
-							k_LRPY[0]=(uint8_t)inPacketBuffer[0];
+							k_LRPY[0]+=(uint8_t)inPacketBuffer[0];
 							//printf("key_lift=%02X",k_LRPY[0]);
 							break;
 						case K_ROLL:
-							k_LRPY[1]=(uint8_t)inPacketBuffer[0];
+							k_LRPY[1]+=(uint8_t)inPacketBuffer[0];
 							break;
 						case K_PITCH:
-							k_LRPY[2]=(uint8_t)inPacketBuffer[0];
+							k_LRPY[2]+=(uint8_t)inPacketBuffer[0];
 							break;
 						case K_YAW:
-							k_LRPY[3]=(uint8_t)inPacketBuffer[0];
+							k_LRPY[3]+=(uint8_t)inPacketBuffer[0];
 							break;
 						case K_YAWP:
-							k_LRPY[4]=(uint8_t)inPacketBuffer[0];
+							k_LRPY[4]+=(uint8_t)inPacketBuffer[0];
 						default:
 							//For now just return the packet
 							printf("Packet: ");
@@ -282,9 +282,9 @@ int main(void)
 	uint32_t counter = 0;
 	demo_done = false;
 	low_battery=false;
-
-	check_battery();
-
+	if (BATTERY_CONNECTED){
+		check_battery();
+	}
 	while (!demo_done && !low_battery)
 	{
 		
@@ -334,7 +334,9 @@ int main(void)
 			run_filters();
 		}
 		
-		check_battery();
+		if (BATTERY_CONNECTED){
+			check_battery();
+		}
 	}	
 
 	printf("\n\t Goodbye \n\n");

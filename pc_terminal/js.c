@@ -91,6 +91,8 @@ void init_js(){
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
+
+
 void make_j_packet(){
 	j_obj.header = J_CONTROL;
 	//j_obj.crc8 = 0x00;
@@ -107,6 +109,8 @@ void make_j_packet(){
 
 		//printf("\n<exit>\n");
 }
+
+
 
 void read_js_values(){
 	unsigned int range = 65535;
@@ -138,6 +142,15 @@ void read_js_values(){
 	}
 }
 
+
+/*-----------------------------------------------------------------------------------------
+* send_j_packet() -	function to detect joystick event, create appropriate packet and 
+* 						send it  to the controller.
+*
+* Author: Himanshu Shah
+* Date : 23/05/18
+*------------------------------------------------------------------------------------------
+*/
 
 void send_j_packet()
 {

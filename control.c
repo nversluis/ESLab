@@ -62,6 +62,53 @@ void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 }
 
 
+/*-----------------------------------------------------------------------------------------
+* yaw_control() -	
+* 					
+*
+* Author: Satish Singh
+* Date : 23/05/18
+*------------------------------------------------------------------------------------------
+*/
+
+
+
+void yaw_control(){
+
+	//unsigned int range = 65535;
+	//unsigned int new_range = 255;
+	//unsigned int max = 32767;
+	//int min = -32768;
+	//int new_min = -128;
+	//uint8_t kp;
+	//uint8_t yaw_error;
+
+	if(LRPY[0] > 10 || LRPY[0] < -10){
+		if (check_sensor_int_flag()) 
+		{
+			get_dmp_data();
+		}
+		/*sr=(int8_t)(((sr - min) * new_range) / range) + new_min;	
+		if(k_LRPY[4] == 0){
+			kp=1;
+		}
+		else{
+			kp=k_LRPY[4];
+		}
+		yaw_error = LRPY[3] + k_LRPY[3] - sr;								//take keyboard offset into account
+		LRPY[3]= kp * yaw_error;
+		*/
+		convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
+	}
+	/*else{
+		LRPY[0]=LRPY[1]=LRPY[2]=LRPY[3]=0;
+		convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
+	}*/
+}
+
+
 void update_motors(void)
 {					
 	motor[0] = ae[0];
@@ -203,7 +250,7 @@ void run_control() // 250Hz
 			}
 			break;
 		case YAWCONTROL:
-			QuadState = PANIC;
+			yaw_control();
 			break;
 		case FULLCONTROL:
 			QuadState = PANIC;
