@@ -20,7 +20,7 @@
 #include "crc.h"
 
 #define MAX_PACKET_SIZE 10
-#define BATTERY_CONNECTED 0
+#define BATTERY_CONNECTED 1
 #define PACKET_DEBUG 0
 
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
@@ -190,23 +190,24 @@ void process_packet(){
 */
 
 void check_battery(){
-	adc_request_sample();
-	if((bat_volt <= 1050 && QuadState != SAFE) && (bat_volt <= 1050 && QuadState != SAFE_NONZERO)) {
+	// adc_request_sample();
+	if((QuadState == SAFE && QuadState == SAFE_NONZERO) && (bat_volt <= 1050)) {
+		printf("Battery Critically low (%d volts)!!\n",bat_volt);
 		low_battery=true;
-		nrf_gpio_pin_toggle(RED);
-		printf("Battery Critically low!!\n");
-		QuadState=PANIC;
 	}
 	else if(bat_volt > 1050 && bat_volt <=1100){
 		printf("Caution!! Battery voltage low!!");
 		low_battery=false;
 	}
 	else if(bat_volt > 1100){
+		//printf("Battery voltage %d volts.\n", bat_volt);
 		low_battery=false;
 	}
 	else{
 		printf("Battery critically low(%d volts)!! Pleae change the battery and restart......\n",bat_volt);
 		low_battery=true; 
+		nrf_gpio_pin_toggle(RED);
+		QuadState=PANIC;
 	}
 }
 
@@ -270,6 +271,7 @@ int main(void)
 	imu_init(true, 100);	
 	baro_init();
 	spi_flash_init();
+	adc_request_sample();
 	nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
 	//ble_init();
 	log_init_done = init_log();
@@ -315,6 +317,10 @@ int main(void)
 			}
 
 			if(counter%200 == 0){
+				adc_request_sample();
+			}
+
+			if(counter%200 == 20){
 				if (BATTERY_CONNECTED){
 					check_battery();
 				}
@@ -322,14 +328,14 @@ int main(void)
 
 			run_control();
 
-			adc_request_sample();
-			read_baro();
+			// adc_request_sample();
+			// read_baro();
 //
-//			printf("%10ld | ", get_time_us());
-//			printf("%3d %3d %3d %3d | ",ae[0],ae[1],ae[2],ae[3]);
-//			printf("%6d %6d %6d | ", phi, theta, psi);
-//			printf("%6d %6d %6d | ", sp, sq, sr);
-//			printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
+			// printf("%10ld | ", get_time_us());
+			// printf("%3d %3d %3d %3d | ",ae[0],ae[1],ae[2],ae[3]);
+			// printf("%6d %6d %6d | ", phi, theta, psi);
+			// printf("%6d %6d %6d | ", sp, sq, sr);
+			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
 //
 			clear_timer_flag();
 		}
