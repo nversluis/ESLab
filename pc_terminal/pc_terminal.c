@@ -8,13 +8,16 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <sys/timeb.h>
+#include <time.h>
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
 #include <inttypes.h>
 #include "protocol.h"
 #include "joystick.h"
+#include "../crc.h"
 
 int rs232_putchar(char c);
 
@@ -120,7 +123,7 @@ void rs232_open(void)
 	cfsetispeed(&tty, B115200);
 
 	tty.c_cc[VMIN]  = 0;
-	tty.c_cc[VTIME] = 1; // added timeout
+	tty.c_cc[VTIME] = 0; // added timeout
 
 	tty.c_iflag &= ~(IXON|IXOFF|IXANY);
 
@@ -193,6 +196,8 @@ int main(int argc, char **argv)
 	char	c;
 	char c2;
 	time_t start_time, end_time;
+	struct timeb start, end, delta;
+    int diff, diffd;
 
 	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
 	
@@ -204,6 +209,7 @@ int main(int argc, char **argv)
 
 	/* discard any incoming text
 	 */
+	sleep(1);
 	while ((c = rs232_getchar_nb()) != -1)
 		fputc(c,stderr);
 	
@@ -211,6 +217,69 @@ int main(int argc, char **argv)
 	start_time=time_buffer.time*1000 + time_buffer.millitm;
 	end_time = start_time;
 
+	// Joystick timing test.
+    /*
+    int i = 0;
+    ftime(&start);
+
+    while(i++ < 1000) {
+        send_j_packet();
+    }
+
+    ftime(&end);
+    diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
+    printf("\nJoystick operations took %u milliseconds\n", diff);
+    */
+
+
+    //Ping timing test.
+    /*
+    bool response_found = false;
+    printf("Start pings.\n");
+    ftime(&start);
+    for(uint8_t i=0; i<100; i++){
+		rs232_putchar(PING);
+		while(!response_found){
+			if((c = rs232_getchar_nb()) != -1){
+				//printf("%c", c);
+				if(c == PING){
+					response_found = true;
+				}
+			}
+		}
+		response_found = false;
+	}
+	ftime(&end);
+	ftime(&delta);
+	printf("End pings.\n");
+    diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
+    diffd = (int) (1000.0 * (delta.time - end.time) + (delta.millitm - end.millitm));
+    printf("\nPings took %u milliseconds, delta was %u.\n", diff, diffd);
+    */
+
+	// Ping test with data and CRC.
+	/*
+	uint8_t data_temp[8];
+	printf("Start ping with data.\n");
+	struct packet p_obj;
+	p_obj.header=PING_DATCRC;
+	p_obj.data=PING_DATCRC;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+	rs232_putchar(p_obj.header);
+	rs232_putchar(p_obj.data);
+	rs232_putchar(p_obj.crc8);
+	while(!response_found){
+		if((c = rs232_getchar_nb()) != -1){
+			for(uint8_t i=1; i<8; i++){
+				data_temp[i] = i-1;
+			}
+		}
+	}
+	printf("End ping with data.\n");
+	*/
+
+
+	sleep(100);
 	/* send & receive
 	 */
 	for (;;)
@@ -227,13 +296,12 @@ int main(int argc, char **argv)
 						struct packet p_obj;
 						p_obj.header=MODESET;
 						p_obj.data=PANIC;
-						//TODO: compute crc and add to packet
 						p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
 						//TODO: implement queue to send packets
 						rs232_putchar(p_obj.header);
 						rs232_putchar(p_obj.data);
 						rs232_putchar(p_obj.crc8);
-						term_putchar("Escape found.");
+						printf("Escape found.\n");
 						sleep(1);
 						break;
 					}

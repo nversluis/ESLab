@@ -19,12 +19,15 @@ void detect_term_input(char);
 
 // Control packets
 #define J_CONTROL		0x80
-#define J_CONTROL_D		0x85 // double precision control message
-#define K_ROLL			0x81
-#define K_LIFT			0x82
-#define K_YAW			0x83
-#define K_PITCH			0x84
-#define K_YAWP          0x85
+#define J_CONTROL_D		0x81 // double precision control message
+#define K_ROLL			0x82
+#define K_LIFT			0x83
+#define K_YAW			0x84
+#define K_PITCH			0x85
+#define K_YAWP          0x86
+//#define PING			0x87
+#define PING			'h'
+#define PING_DATCRC		0x88
 
 // Logging packets
 #define SYSTIME			0x90
