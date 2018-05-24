@@ -313,6 +313,13 @@ int main(void)
 					log_err_change = true;
 				}
 			}
+
+			if(counter%200 == 0){
+				if (BATTERY_CONNECTED){
+					check_battery();
+				}
+			}
+
 			run_control();
 
 			adc_request_sample();
@@ -334,9 +341,6 @@ int main(void)
 			run_filters();
 		}
 		
-		if (BATTERY_CONNECTED){
-			check_battery();
-		}
 	}	
 
 	printf("\n\t Goodbye \n\n");
