@@ -84,7 +84,7 @@ void yaw_control(){
 	//unsigned int max = 32767;
 	//int min = -32768;
 	//int new_min = -128;
-	//uint8_t kp;
+	uint8_t P_r;
 	//uint8_t yaw_error;
 
 	if(LRPY[0] > 10 || LRPY[0] < -10){
@@ -94,13 +94,13 @@ void yaw_control(){
 		}
 		/*sr=(int8_t)(((sr - min) * new_range) / range) + new_min;	
 		if(k_LRPY[4] == 0){
-			kp=1;
+			P_r=1;
 		}
 		else{
-			kp=k_LRPY[4];
+			P_r=k_LRPY[4];
 		}
 		yaw_error = LRPY[3] + k_LRPY[3] - sr;								//take keyboard offset into account
-		LRPY[3]= kp * yaw_error;
+		yaw = P_r * yaw_error;
 		*/
 		convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
@@ -111,6 +111,7 @@ void yaw_control(){
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 	}*/
 }
+void roll_and_pitch_control()
 
 
 void update_motors(void)
