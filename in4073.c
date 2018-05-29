@@ -305,7 +305,7 @@ int main(void)
 		// 	}
 		// }
 
-		// process_packet();
+		process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
 //
  		if (check_timer_flag()) 
