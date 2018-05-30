@@ -88,12 +88,32 @@ void detect_term_input(char c){
                  data_detected=1;
                  break;
         case 'u':
-                 p_obj.header=K_YAWP;
+                 p_obj.header=K_P;
                  p_obj.data=INCREASEPROP;
                  data_detected=1;
                  break;
         case 'j': 
-                 p_obj.header=K_YAWP;
+                 p_obj.header=K_P;
+                 p_obj.data=DECREASEPROP;
+                 data_detected=1;
+                 break;
+        case 'i':
+                 p_obj.header=K_P1;
+                 p_obj.data=INCREASEPROP;
+                 data_detected=1;
+                 break;
+        case 'k': 
+                 p_obj.header=K_P1;
+                 p_obj.data=DECREASEPROP;
+                 data_detected=1;
+                 break;
+        case 'o':
+                 p_obj.header=K_P2;
+                 p_obj.data=INCREASEPROP;
+                 data_detected=1;
+                 break;
+        case 'l': 
+                 p_obj.header=K_P2;
                  p_obj.data=DECREASEPROP;
                  data_detected=1;
                  break;
@@ -121,9 +141,7 @@ void detect_term_input(char c){
                 break;
     }
     if(data_detected == 1){
-        //p_obj.crc8 = 0xFE;
         p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
-        //TODO: crude method, make use of rs232 queue instead of this 
         rs232_putchar(p_obj.header);
         rs232_putchar(p_obj.data);
         rs232_putchar(p_obj.crc8);

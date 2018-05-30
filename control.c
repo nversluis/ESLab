@@ -14,7 +14,6 @@
 #include "pc_terminal/protocol.h"
 #include <stdlib.h>
 
-
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
 * 						corresponding rotor rpm values.
@@ -23,35 +22,30 @@
 * Date : 13/05/18
 *------------------------------------------------------------------------------------------
 */
-void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
-	int16_t rotor[4];
-	rotor[0] = (uint16_t)((uint16_t)2*(lift + k_LRPY[0]) + 2*(pitch + k_LRPY[2]) - (yaw + k_LRPY[3]));
-	rotor[1] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) - 2*(roll + k_LRPY[1]) + (yaw + k_LRPY[3]));
-	rotor[2] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) - 2*(pitch + k_LRPY[2]) - (yaw + k_LRPY[3]));
-	rotor[3] = (int16_t)((int16_t)2*(lift + k_LRPY[0]) + 2*(roll + k_LRPY[1]) + (yaw + k_LRPY[3]));
-
-	//for(uint8_t i=0; i<4; i++){
-		
-		/*
-		else{
-			rotor[i] = (int)sqrt(rotor[i]);
-		}*/
-	//} 
+void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
+	int32_t rotor[4];
+	rotor[0] = ((uint32_t)(-5*lift) + (10*pitch) - (8*yaw));
+	rotor[1] = ((uint32_t)(-5*lift) - (10*roll) + (8*yaw));
+	rotor[2] = ((uint32_t)(-5*lift) - (10*pitch) - (8*yaw));
+	rotor[3] = ((uint32_t)(-5*lift) + (10*roll) + (8*yaw));
+	//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", rotor[0], rotor[1],rotor[2],rotor[3]);
 
 	for(uint8_t i=0; i<4; i++){
-		if(lift<10){rotor[i]=0;}
+		if(rotor[i] < 0){
+			rotor[i] = 0;
+		}
+		else{
+			rotor[i] = (int32_t)sqrt(rotor[i]);
+		}
+	}
 
-		if(rotor[i] <= 0){
-			rotor[i] = 0;   			
+	for(uint8_t i=0; i<4; i++){
+		if(lift<10){
+			rotor[i]=0;
 		}
 		
 		if(lift > 10 && rotor[i] < 200){
 			rotor[i] = 200;
-			// if(rotor[i] > 0){
-			// 	rotor[i] = 200;
-			// }else{
-			// 	rotor[i] = 0;							// do not start rotors if lift is not provided.
-			// }
 		}
 		if(rotor[i] >= 500){
 			rotor[i] = 500;
@@ -79,37 +73,74 @@ void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw){
 
 void yaw_control(){
 
-	//unsigned int range = 65535;
-	//unsigned int new_range = 255;
-	//unsigned int max = 32767;
-	//int min = -32768;
-	//int new_min = -128;
-	//uint8_t kp;
-	//uint8_t yaw_error;
+	int16_t YAW16;
+	int8_t kp = 5;
+	int16_t yaw_error, adjusted_yaw;
+
+	YAW16=LRPY[3]<<8;
 
 	if(LRPY[0] > 10 || LRPY[0] < -10){
 		if (check_sensor_int_flag()) 
 		{
 			get_dmp_data();
 		}
-		/*sr=(int8_t)(((sr - min) * new_range) / range) + new_min;	
-		if(k_LRPY[4] == 0){
-			kp=1;
+		
+		kp += k_LRPY[4];
+		if(kp < 1){
+			kp = 1;
 		}
-		else{
-			kp=k_LRPY[4];
-		}
-		yaw_error = LRPY[3] + k_LRPY[3] - sr;								//take keyboard offset into account
-		LRPY[3]= kp * yaw_error;
-		*/
-		convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+		yaw_error = YAW16 + k_LRPY[3] - sr;								//take keyboard offset into account
+		adjusted_yaw = kp * yaw_error;
+
+		convert_to_rpm(LRPY[0], LRPY[1], LRPY[2], adjusted_yaw);
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
+		//printf("kp:%d\n", kp);	
 	}
-	/*else{
-		LRPY[0]=LRPY[1]=LRPY[2]=LRPY[3]=0;
-		convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
-	}*/
+}
+
+/*
+*-----------------------------------------------------------------------------------------
+* full_control() -	
+* 					
+*
+* Author: Satish Singh
+* Date : 23/05/18
+*------------------------------------------------------------------------------------------
+*/
+
+
+
+void full_control(){
+
+	int16_t LRPY16[4];
+	int16_t roll_error, pitch_error, yaw_error, adjusted_roll, adjusted_pitch, adjusted_yaw;
+	int8_t kp = 5,kp1 = 1,kp2 = 1;
+
+	for(int8_t i=0; i<4; i++){
+		LRPY16[i] = LRPY[i]<<8;
+	}
+
+	if(LRPY[0] > 10 || LRPY[0] < -10){
+		if (check_sensor_int_flag()) 
+		{
+			get_dmp_data();
+		}
+		
+		kp += k_LRPY[4];
+		kp1 += k_LRPY[5];
+		kp2 += k_LRPY[6];
+
+		roll_error = LRPY[1] + k_LRPY[1] - phi;
+		pitch_error = LRPY[2] + k_LRPY[2] - theta;
+		yaw_error = LRPY16[3] + k_LRPY[3] - sr;								//take keyboard offset into account
+		adjusted_pitch = (kp1 * pitch_error) - (kp2 * sq);
+		adjusted_roll = (kp1 * roll_error) - (kp2 * sp);
+		adjusted_yaw = kp * yaw_error;
+
+		convert_to_rpm(LRPY[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		//printf("kp:%d\n", kp);	
+	}
 }
 
 
@@ -135,7 +166,7 @@ void run_filters() // 100Hz (or different if DMP speed is changed)
 * Date : 21/05/2018
 *------------------------------------------------------------------------------------------
 */
-#define NON_ZERO_DEBUG	 0
+#define NON_ZERO_DEBUG	 1
 #define LIFT_THRESSHOLD  2
 #define ROLL_THRESSHOLD  5
 #define PITCH_THRESSHOLD 5
@@ -226,7 +257,10 @@ void run_control() // 250Hz
 		case MANUAL:
 			//Map the received values directly to the motors.
 			//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
-			convert_to_rpm((uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
+			for(uint8_t i=0; i<4; i++){
+				LRPY16[i]=LRPY[i]<<8;
+			}
+			convert_to_rpm(LRPY16[0],LRPY16[1], LRPY16[2], LRPY16[3]);
 			printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 			break;
 		case CALIBRATION_ENTER:
@@ -257,7 +291,7 @@ void run_control() // 250Hz
 			yaw_control();
 			break;
 		case FULLCONTROL:
-			QuadState = PANIC;
+			full_control();
 			break;
 		case RAW:
 			QuadState = PANIC;
@@ -308,7 +342,7 @@ void run_control() // 250Hz
 			}
 
 			// Only go to DUMPLOGS and CALIBRATION from SAFE modes.
-			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION)){
+			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION )){
 				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
 					QuadState = ModeToSet;
 					if(ModeToSet == CALIBRATION){

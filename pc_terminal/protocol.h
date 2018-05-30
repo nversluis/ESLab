@@ -24,7 +24,9 @@ void detect_term_input(char);
 #define K_LIFT			0x83
 #define K_YAW			0x84
 #define K_PITCH			0x85
-#define K_YAWP          0x86
+#define K_P             0x86
+#define K_P1            0x89
+#define K_P2            0x8A
 //#define PING			0x87
 #define PING			'h'
 #define PING_DATCRC		0x88

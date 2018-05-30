@@ -65,7 +65,7 @@ void process_packet(){
 					break;
 				}
 				// Check if it's a header byte
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_YAWP || readByte == K_PITCH || readByte == PING_DATCRC){
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
@@ -148,20 +148,26 @@ void process_packet(){
 							LRPY[3] = (int8_t)inPacketBuffer[3];
 							break;
 						case K_LIFT:
-							k_LRPY[0]+=(uint8_t)inPacketBuffer[0];
-							//printf("key_lift=%02X",k_LRPY[0]);
+							k_LRPY[0]+=(int8_t)inPacketBuffer[0];
 							break;
 						case K_ROLL:
-							k_LRPY[1]+=(uint8_t)inPacketBuffer[0];
+							k_LRPY[1]+=(int8_t)inPacketBuffer[0];
 							break;
 						case K_PITCH:
-							k_LRPY[2]+=(uint8_t)inPacketBuffer[0];
+							k_LRPY[2]+=(int8_t)inPacketBuffer[0];
 							break;
 						case K_YAW:
-							k_LRPY[3]+=(uint8_t)inPacketBuffer[0];
+							k_LRPY[3]+=(int8_t)inPacketBuffer[0];
 							break;
-						case K_YAWP:
-							k_LRPY[4]+=(uint8_t)inPacketBuffer[0];
+						case K_P:
+							k_LRPY[4]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_P1:
+							k_LRPY[5]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_P2:
+							k_LRPY[6]+=(int8_t)inPacketBuffer[0];
+							break;
 						case PING_DATCRC:
 							dat_temp = PING_DATCRC;
 							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));

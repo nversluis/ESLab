@@ -213,11 +213,11 @@ int main(int argc, char **argv)
 	while ((c = rs232_getchar_nb()) != -1)
 		fputc(c,stderr);
 	
-	/*
+	
 	ftime(&time_buffer);
 	start_time=time_buffer.time*1000 + time_buffer.millitm;
 	end_time = start_time;
-	*/
+	
 
 	// Joystick timing test.
     /*
