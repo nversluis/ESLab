@@ -235,7 +235,7 @@ pc-run:
 upload-run: default pc
 	python ./dfu_serial/serial_dfu.py -p COM4 _build/in4073.bin
 	#cd pc_terminal/; make run
-	cmd //C "C:\Program Files\PuTTY\putty.exe" -load "ESL"
+	cmd //C "C:\Program Files\PuTTY\putty.exe" -load "Quad"
 else
 upload: default
 	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
