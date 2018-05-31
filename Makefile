@@ -233,7 +233,7 @@ pc-run:
 	#cd pc_terminal/; make run
 	
 upload-run: default pc
-	python ./dfu_serial/serial_dfu.py -p COM4 _build/in4073.bin
+	python ./dfu_serial/serial_dfu.py -p COM5 _build/in4073.bin
 	#cd pc_terminal/; make run
 	cmd //C "C:\Program Files\PuTTY\putty.exe" -load "ESL"
 else

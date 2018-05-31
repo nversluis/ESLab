@@ -109,15 +109,12 @@ bool read_log_entry(uint32_t addr){
 
 
     // Write log entry to PC
-    //printf("%c ", BIG_PACKET);
     printf("%02X ", BIG_PACKET);
     for(uint8_t i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
-        //printf("%c", data_buf[i]);
         printf("%02X ", data_buf[i]);
         nrf_delay_ms(1);
     }
     nrf_delay_ms(1);
-    //printf("%c", crc);
     printf("CRC: %02X\n", crc);
     nrf_delay_ms(1);
     return true;
