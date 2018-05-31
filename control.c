@@ -153,9 +153,9 @@ void full_control(){
 			kp2 = 1;
 			k_LRPY[6]=0;
 		}
-		roll_error = LRPY16[1] - (k_LRPY[1]*4) - phi;
-		pitch_error = LRPY16[2] - (k_LRPY[2]*4) - theta;
-		yaw_error = LRPY16[3] + (k_LRPY[3]*4) + sr;								//take keyboard offset into account
+		roll_error = LRPY16[1]/4 - (k_LRPY[1]*4) - phi;
+		pitch_error = LRPY16[2]/4 - (k_LRPY[2]*4) - theta;
+		yaw_error = LRPY16[3]/4 + (k_LRPY[3]*4) + sr;								//take keyboard offset into account
 		adjusted_pitch = (kp1 * pitch_error)/4 + (kp2 * sq)/2;
 		adjusted_roll = (kp1 * roll_error)/4 - (kp2 * sp)/2;
 		adjusted_yaw = kp * yaw_error;
