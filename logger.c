@@ -5,14 +5,40 @@
  * Author: Niels Versluis - 4227646
  *----------------------------------------------------------------*/
 #include "in4073.h"
-#include <stdbool.h>
-#include "crc.h"
 
-#define LOG_DUMP_DEBUG 0
+#define LOG_WRITE_DEBUG 0
+#define LOG_READ_DEBUG  0
+
+uint32_t prev_log_time;
+uint32_t write_addr;						
+uint32_t addr_before_overflow;				// Last address written to before overflow occurred	
+int8_t curr_flash_block;					// 4KB flash block currently being written to
+bool log_init_done;
+bool log_err;
+bool log_err_change;
+bool flash_overflow;						// True if flash overflow has been triggered
+
+// Initialize the logfile
+bool log_init(){
+	prev_log_time = get_time_us();
+    write_addr = 0x000000;
+    addr_before_overflow = 0x000000;
+    curr_flash_block = -1;
+    flash_overflow = false;
+    log_err = false;
+	log_err_change = false;
+    if(spi_flash_init()){
+        log_init_done = true;
+        return log_init_done;
+    } else {
+        printf("ERROR: SPI Flash initialization failed\n");
+        return false;
+    }
+}
 
 // Write relevant log data to the flash memory at the specified address
 // Returns true on success, false on failure
-bool write_log(uint32_t addr){
+bool log_write(uint32_t addr){
     if(!log_init_done){
         printf("ERROR: Flash not initalized yet!");
         return false;
@@ -64,7 +90,7 @@ bool write_log(uint32_t addr){
         array[25] = bat_volt & 0xFF;
         array[26] = (bat_volt >> 8) & 0xFF;
 
-        #if LOG_DUMP_DEBUG == 1
+        #if LOG_WRITE_DEBUG
         printf("Log Written: ");
         for(uint8_t i=0; i<LOG_ENTRY_SIZE_BYTES; i++){
             printf("%02X ", array[i]);
@@ -84,16 +110,20 @@ bool write_log(uint32_t addr){
 
 // Push all log data to the PC
 // Returns true on success, false on failure
-bool read_log_entry(uint32_t addr){
+bool log_read_entry(uint32_t addr){
     if(!log_init_done){
         printf("ERROR: Log not initialized\n");
+        return false;
+    }
+    if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
+        printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
     }
     // Create data buffer
     uint8_t data_buf[LOG_ENTRY_SIZE_BYTES];
     flash_read_bytes(addr, data_buf, LOG_ENTRY_SIZE_BYTES);
     uint8_t crc = make_crc8_tabled(BIG_PACKET, data_buf, LOG_ENTRY_SIZE_BYTES);
-    printf("Entry(%lu): ", addr);
+    printf("Entry(%lx): ", addr);
 
     // Check for valid data
     uint8_t counter = 0;
@@ -112,27 +142,83 @@ bool read_log_entry(uint32_t addr){
     printf("%02X ", BIG_PACKET);
     for(uint8_t i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
         printf("%02X ", data_buf[i]);
-        nrf_delay_ms(1);
+        nrf_delay_us(250);
     }
-    nrf_delay_ms(1);
     printf("CRC: %02X\n", crc);
-    nrf_delay_ms(1);
+    nrf_delay_us(250);
     return true;
 }
 
-// Initialize the logfile
-bool init_log(){
-    prev_log_time = 0;
-    write_addr = 0x000000;
-    addr_before_overflow = 0x000000;
-    curr_flash_block = -1;
-    flash_overflow = false;
-    if(spi_flash_init()){
-        log_init_done = true;
-        return log_init_done;
-    } else {
-        printf("ERROR: SPI Flash initialization failed\n");
-        return false;
+void log_dump(){
+    printf("INFO: Log dump started.\n");
+    // Iterate starting from last address that contains data
+    int32_t i = write_addr - LOG_ENTRY_SIZE_BYTES;
+    // Normal readout
+    while(i >= 0){
+        if(!log_read_entry(i)){
+            printf("ERROR: Log dump aborted early.\n");
+            flash_overflow = false;
+            break;
+        } else {
+            i -= LOG_ENTRY_SIZE_BYTES;
+        }
     }
+    // Overflow readout
+    if(flash_overflow){
+        // Read back from end of flash to last non-erased address
+        i = addr_before_overflow - LOG_ENTRY_SIZE_BYTES;
+        uint32_t lower_addr_limit = (curr_flash_block + 1) * 0x1000;
+        // Read down to lower address limit
+        while(i > lower_addr_limit){
+            if(!log_read_entry(i)){
+                printf("ERROR: Log dump aborted early.\n");
+                break;
+            } else {
+                i -= LOG_ENTRY_SIZE_BYTES;
+            }
+        }			
+    }
+    printf("INFO: Log dump complete.\n");
+    return;
+}
 
+void logger_main(){
+    uint32_t cur_time = get_time_us();
+    // Only log when flash is initialized, no logging errors have occured, and log period
+    // has expired.
+    if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
+        prev_log_time = cur_time;
+        #if LOG_WRITE_DEBUG
+        //printf("Logging to address: %lx\n", write_addr);
+        #endif
+        log_err = !log_write(write_addr);
+        write_addr += LOG_ENTRY_SIZE_BYTES;
+        // If there is flash overflow
+        if(write_addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
+            // Wrap around
+            addr_before_overflow = write_addr - LOG_ENTRY_SIZE_BYTES;
+            write_addr = 0;
+            if(flash_overflow == false){
+                printf("WARNING: Flash overflow detected: old data will be erased!\n");
+            }
+            flash_overflow = true;
+        }
+        // Erase flash sector if necessary
+        if(flash_overflow){
+            uint8_t requested_block = (uint8_t)floor(write_addr / 0x1000);
+            if(curr_flash_block != requested_block){
+                #if LOG_READ_DEBUG || LOG_WRITE_DEBUG
+                    printf("Switching flash block to %i\n", requested_block);
+                #endif
+                if(flash_4k_sector_erase(requested_block)){
+                    curr_flash_block = requested_block;
+                } else {
+                    printf("ERROR: 4k Sector erase failed.\n");
+                }
+            }
+        }
+    } else if (!log_err_change && log_err){
+        printf("ERROR: Logging aborted!\n");
+        log_err_change = true;
+    }
 }

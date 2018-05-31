@@ -22,6 +22,7 @@
 #define MAX_PACKET_SIZE 10
 #define BATTERY_CONNECTED 0
 #define PACKET_DEBUG 0
+#define LOG_DEBUG 1
 
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
 
@@ -289,11 +290,7 @@ int main(void)
 	adc_request_sample();
 	//nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
 	//ble_init();
-	log_init_done = init_log();
-	log_err = false;
-	bool log_err_change = false;
-
-	prev_log_time = get_time_us();
+	log_init();
 
 	uint32_t counter = 0;
 	demo_done = false;
@@ -316,44 +313,12 @@ int main(void)
 //
  		if (check_timer_flag()) 
 		{
-			
+			#if LOG_DEBUG
+			if (counter++%1 == 0){
+			#else
 			if (counter++%20 == 0){
-			// 	nrf_gpio_pin_toggle(BLUE);
-
-				/*-------------------------------------------------------------------------------------
-				* Logger call
-				* Author: Niels Versluis
-				*------------------------------------------------------------------------------------*/
-				uint32_t cur_time = get_time_us();
-				// Only log when flash is initialized, no logging errors have occured, and log period
-				// has expired.
-				if((log_init_done) && (!log_err) && (cur_time >= prev_log_time + LOG_PERIOD_US)){
-					prev_log_time = cur_time;
-					log_err = !write_log(write_addr);
-					write_addr += LOG_ENTRY_SIZE_BYTES;
-					// If there is flash overflow
-					if(write_addr > FLASH_ADDR_LIMIT){
-						// Wrap around
-						addr_before_overflow = write_addr;
-						write_addr = 0;
-						flash_overflow = true;
-						printf("WARNING: Flash overflow detected: old data will be erased!");
-					}
-					// Erase flash sector if necessary
-					if(flash_overflow){
-						uint8_t requested_block = (uint8_t)floor(write_addr / 4000);
-						if(curr_flash_block != requested_block){
-							if(flash_4k_sector_erase(requested_block)){
-								curr_flash_block = requested_block;
-							} else {
-								printf("ERROR: 4k Sector erase failed.\n");
-							}
-						}
-					}
-				} else if (!log_err_change && log_err){
-					printf("ERROR: Logging aborted!\n");
-					log_err_change = true;
-				}
+			#endif
+			logger_main();
 			}
 
 			if(counter%200 == 0){

@@ -331,35 +331,7 @@ void run_control() // 250Hz
 			QuadState = PANIC;
 			break;
 		case DUMPLOGS:
-			printf("INFO: Log dump started.\n");
-			// Iterate starting from last address that contains data
-			uint32_t i = write_addr - LOG_ENTRY_SIZE_BYTES;
-			// Normal readout
-			while(i >= 0){
-				if(!read_log_entry(i)){
-					printf("ERROR: Log dump aborted early.\n");
-					flash_overflow = false;
-					break;
-				} else {
-					i -= LOG_ENTRY_SIZE_BYTES;
-				}
-			}
-			// Overflow readout
-			if(flash_overflow){
-				// Read back from end of flash to last non-erased address
-				i = addr_before_overflow - LOG_ENTRY_SIZE_BYTES;
-				uint32_t lower_addr_limit = (curr_flash_block + 1) * 4000;
-				// Read down to lower address limit
-				while(i > lower_addr_limit){
-					if(!read_log_entry(i)){
-						printf("ERROR: Log dump aborted early.\n");
-						break;
-					} else {
-						i -= LOG_ENTRY_SIZE_BYTES;
-					}
-				}			
-			}
-			printf("INFO: Log dump complete.\n");
+			log_dump();
 			QuadState = SAFE;
 			break;
 		case SETNEWMODE:

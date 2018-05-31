@@ -116,6 +116,8 @@ bool flash_write_byte(uint32_t address, uint8_t data);
 bool flash_write_bytes(uint32_t address, uint8_t *data, uint32_t count);
 bool flash_read_byte(uint32_t address, uint8_t *buffer);
 bool flash_read_bytes(uint32_t address, uint8_t *buffer, uint32_t count);
+// New addition
+bool flash_4k_sector_erase(uint8_t sector_number);
 
 // BLE
 queue ble_rx_queue;
@@ -127,17 +129,9 @@ void ble_send(void);
 // Logger
 #define FLASH_ADDR_LIMIT   		0x01FFFF    // Maximum flash address
 #define LOG_ENTRY_SIZE_BYTES  	27          // Amount of bytes in a log entry
-#define LOG_PERIOD_US			10000		// Amount of microseconds between logs
-uint32_t prev_log_time;
-uint32_t write_addr;
-uint32_t addr_before_overflow;	
-int8_t curr_flash_block;					// 4KB flash block currently being written to
-bool log_init_done;
-bool log_err;
-bool flash_overflow;
-bool write_log(uint32_t address);
-bool init_log();
-bool read_log_entry(uint32_t addr);
-bool flash_4k_sector_erase(uint8_t sector_number);
+#define LOG_PERIOD_US			10			// Amount of microseconds between logs
+bool log_init();
+void log_dump();
+void logger_main();
 
 #endif // IN4073_H__

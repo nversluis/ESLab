@@ -415,7 +415,7 @@ bool flash_chip_erase(void)
 	return result;
 }
 /**
-* Erases a 4k sector of the flash
+* Erases a 4k (4096 byte) sector of the flash
 * Author: Niels Versluis - 4227646
 **/
 bool flash_4k_sector_erase(uint8_t sector_number)
@@ -429,7 +429,7 @@ bool flash_4k_sector_erase(uint8_t sector_number)
         printf("ERROR: Flash write not enabled\n");
 		return false;
 	}
-    uint32_t addr = (uint32_t)sector_number * (uint32_t)0xFA0; // Sector number * 4000
+    uint32_t addr = (uint32_t)sector_number * (uint32_t)0x1000; // Sector number * 4096
     uint8_t tx_data[4] = {SECTOR_ERASE, (addr >> (8*2)) & 0xFF, (addr >> (8*1)) & 0xFF, (addr & 0xFF)};
 	bool result = spi_master_tx(SPI_MODULE, 4, tx_data);
 	nrf_delay_ms(25);  // Tse from the flash data sheet
