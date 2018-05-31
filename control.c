@@ -24,10 +24,10 @@
 */
 void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 	int32_t rotor[4];
-	rotor[0] = ((uint32_t)(-5*lift) + (10*pitch) - (8*yaw));
-	rotor[1] = ((uint32_t)(-5*lift) - (10*roll) + (8*yaw));
-	rotor[2] = ((uint32_t)(-5*lift) - (10*pitch) - (8*yaw));
-	rotor[3] = ((uint32_t)(-5*lift) + (10*roll) + (8*yaw));
+	rotor[0] = ((uint32_t)(5*lift) + (10*pitch) - (8*yaw));
+	rotor[1] = ((uint32_t)(5*lift) - (10*roll) + (8*yaw));
+	rotor[2] = ((uint32_t)(5*lift) - (10*pitch) - (8*yaw));
+	rotor[3] = ((uint32_t)(5*lift) + (10*roll) + (8*yaw));
 	//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", rotor[0], rotor[1],rotor[2],rotor[3]);
 
 	for(uint8_t i=0; i<4; i++){
@@ -35,7 +35,7 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 			rotor[i] = 0;
 		}
 		else{
-			rotor[i] = (int32_t)sqrt(rotor[i]);
+			rotor[i] = (uint16_t)sqrt(rotor[i]);
 		}
 	}
 
@@ -256,11 +256,10 @@ void run_control() // 250Hz
 			break;
 		case MANUAL:
 			//Map the received values directly to the motors.
-			//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)LRPY[0], (int8_t)LRPY[1], (int8_t)LRPY[2], (int8_t)LRPY[3]);
 			for(uint8_t i=0; i<4; i++){
 				LRPY16[i]=LRPY[i]<<8;
 			}
-			convert_to_rpm(LRPY16[0],LRPY16[1], LRPY16[2], LRPY16[3]);
+			convert_to_rpm((uint16_t)LRPY16[0],LRPY16[1], LRPY16[2], LRPY16[3]);
 			printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 			break;
 		case CALIBRATION_ENTER:
