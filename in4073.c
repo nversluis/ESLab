@@ -215,7 +215,7 @@ void check_battery(){
 		low_battery=false;
 	}
 	else if(bat_volt > 1100){
-		//printf("Battery voltage %d volts.\n", bat_volt);
+		printf("Battery voltage %d volts.\n", bat_volt);
 		low_battery=false;
 	}
 	else{

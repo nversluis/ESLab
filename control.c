@@ -36,7 +36,11 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 		}
 		else{
 			rotor[i] = (uint16_t)sqrt(rotor[i]);
-		}
+		}	
+	}
+
+	for(uint8_t i=0; i<4; i++){
+		rotor[i] += k_LRPY[i]; 
 	}
 
 	for(uint8_t i=0; i<4; i++){
@@ -47,8 +51,8 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 		if(lift > 10 && rotor[i] < 200){
 			rotor[i] = 200;
 		}
-		if(rotor[i] >= 500){
-			rotor[i] = 500;
+		if(rotor[i] >= 700){
+			rotor[i] = 700;
 		}
 	}
 
@@ -73,11 +77,13 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 
 void yaw_control(){
 
-	int16_t YAW16;
-	int8_t kp = 5;
-	int16_t yaw_error, adjusted_yaw;
+	int8_t kp = 10;
+	int32_t yaw_error, adjusted_yaw;
 
-	YAW16=LRPY[3]<<8;
+	//YAW16=LRPY[3]<<8;
+	for(uint8_t i =0; i<4; i++){
+		LRPY16[i]=LRPY[i]<<8;
+	}
 
 	if(LRPY[0] > 10 || LRPY[0] < -10){
 		if (check_sensor_int_flag()) 
@@ -89,12 +95,18 @@ void yaw_control(){
 		if(kp < 1){
 			kp = 1;
 		}
-		yaw_error = YAW16 + k_LRPY[3] - sr;								//take keyboard offset into account
+		yaw_error = LRPY16[3] + k_LRPY[3] + sr;								//take keyboard offset into account
 		adjusted_yaw = kp * yaw_error;
 
-		convert_to_rpm(LRPY[0], LRPY[1], LRPY[2], adjusted_yaw);
+		convert_to_rpm((uint16_t)LRPY16[0], LRPY16[1], LRPY16[2], adjusted_yaw);
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
 		//printf("kp:%d\n", kp);	
+	}
+	else{
+		for(uint8_t i=0; i<4; i++){
+			ae[i]=0;
+		}
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 	}
 }
 
@@ -114,7 +126,7 @@ void full_control(){
 
 	int16_t LRPY16[4];
 	int16_t roll_error, pitch_error, yaw_error, adjusted_roll, adjusted_pitch, adjusted_yaw;
-	int8_t kp = 5,kp1 = 1,kp2 = 1;
+	int8_t kp = 1,kp1 = 1,kp2 = 1;
 
 	for(int8_t i=0; i<4; i++){
 		LRPY16[i] = LRPY[i]<<8;
@@ -127,19 +139,36 @@ void full_control(){
 		}
 		
 		kp += k_LRPY[4];
+		if(kp < 1){
+			kp = 1;
+			k_LRPY[4]=0;
+		}
 		kp1 += k_LRPY[5];
+		if(kp1 < 1){
+			kp1 = 1;
+			k_LRPY[5]=0;
+		}
 		kp2 += k_LRPY[6];
-
-		roll_error = LRPY[1] + k_LRPY[1] - phi;
-		pitch_error = LRPY[2] + k_LRPY[2] - theta;
-		yaw_error = LRPY16[3] + k_LRPY[3] - sr;								//take keyboard offset into account
-		adjusted_pitch = (kp1 * pitch_error) - (kp2 * sq);
-		adjusted_roll = (kp1 * roll_error) - (kp2 * sp);
+		if(kp2 < 1 ){
+			kp2 = 1;
+			k_LRPY[6]=0;
+		}
+		roll_error = LRPY16[1] - (k_LRPY[1]*4) - phi;
+		pitch_error = LRPY16[2] - (k_LRPY[2]*4) - theta;
+		yaw_error = LRPY16[3] + (k_LRPY[3]*4) + sr;								//take keyboard offset into account
+		adjusted_pitch = (kp1 * pitch_error)/4 + (kp2 * sq)/2;
+		adjusted_roll = (kp1 * roll_error)/4 - (kp2 * sp)/2;
 		adjusted_yaw = kp * yaw_error;
 
-		convert_to_rpm(LRPY[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
+		convert_to_rpm((uint16_t)LRPY16[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
-		//printf("kp:%d\n", kp);	
+		//printf("kp:%d,kp1:%d,kp2:%d\n", kp, kp1,kp2);	
+	}
+	else{
+		for(uint8_t i=0; i<4; i++){
+			ae[i]=0;
+		}
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 	}
 }
 

@@ -66,8 +66,8 @@ void detect_term_input(char);
 
 #define INCREASEPROP    1
 #define DECREASEPROP    -1
-#define DECREASE		-10
-#define INCREASE		10
+#define DECREASE		-1
+#define INCREASE		1
 
 struct packet{
     uint8_t header;
