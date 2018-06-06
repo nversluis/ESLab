@@ -195,11 +195,17 @@ void run_filters() // 100Hz (or different if DMP speed is changed)
 * Date : 21/05/2018
 *------------------------------------------------------------------------------------------
 */
-#define NON_ZERO_DEBUG	 1
+#if CONTROLLER == 1
+#define LIFT_THRESSHOLD  20
+#define ROLL_THRESSHOLD  20
+#define PITCH_THRESSHOLD 20
+#define YAW_THRESSHOLD   20
+#else
 #define LIFT_THRESSHOLD  2
 #define ROLL_THRESSHOLD  5
 #define PITCH_THRESSHOLD 5
 #define YAW_THRESSHOLD   5
+#endif
 bool near_zero(void){
 	if((uint8_t)LRPY[0] < LIFT_THRESSHOLD){ // lift
 		if((int8_t)LRPY[1] < ROLL_THRESSHOLD && (int8_t)LRPY[1] > -ROLL_THRESSHOLD){ // roll

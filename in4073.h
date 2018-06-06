@@ -24,6 +24,13 @@
 #include "app_util_platform.h"
 #include "crc.h"
 
+#define CONTROLLER 1
+#define NON_ZERO_DEBUG	 1
+#define MAX_PACKET_SIZE 10
+#define BATTERY_CONNECTED 0
+#define PACKET_DEBUG 0
+#define LOG_DEBUG 1
+
 #define RED			22
 #define YELLOW		24
 #define GREEN		28

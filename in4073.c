@@ -18,11 +18,6 @@
 #include "pc_terminal/protocol.h"
 #include "crc.h"
 
-#define MAX_PACKET_SIZE 10
-#define BATTERY_CONNECTED 0
-#define PACKET_DEBUG 0
-#define LOG_DEBUG 1
-
 void convert_to_rpm(uint8_t lift, int8_t roll, int8_t pitch, int8_t yaw);
 
 uint8_t inPacketState = 0;
@@ -310,7 +305,7 @@ int main(void)
 
 		process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
-		
+
  		if (check_timer_flag()) 
 		{
 			#if LOG_DEBUG
