@@ -16,6 +16,7 @@
 #include "in4073.h"
 #include <sys/time.h>
 #include "pc_terminal/protocol.h"
+#include "crc.h"
 
 #define MAX_PACKET_SIZE 10
 #define BATTERY_CONNECTED 0
