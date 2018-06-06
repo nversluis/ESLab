@@ -1,6 +1,7 @@
 /*------------------------------------------------------------------
  * logger.c
  * Logging functions to write log data to the on-board flash
+ * All code is intended to run on the microcontroller
  * 
  * Author: Niels Versluis - 4227646
  *----------------------------------------------------------------*/
@@ -8,6 +9,7 @@
 
 #define LOG_WRITE_DEBUG 0
 #define LOG_READ_DEBUG  0
+#define LOG_TERMINAL    1
 
 uint32_t prev_log_time;
 uint32_t write_addr;						
@@ -123,7 +125,9 @@ bool log_read_entry(uint32_t addr){
     uint8_t data_buf[LOG_ENTRY_SIZE_BYTES];
     flash_read_bytes(addr, data_buf, LOG_ENTRY_SIZE_BYTES);
     uint8_t crc = make_crc8_tabled(BIG_PACKET, data_buf, LOG_ENTRY_SIZE_BYTES);
+    #if LOG_READ_DEBUG
     printf("Entry(%lx): ", addr);
+    #endif
 
     // Check for valid data
     uint8_t counter = 0;
@@ -138,7 +142,8 @@ bool log_read_entry(uint32_t addr){
     }
 
 
-    // Write log entry to PC
+    #if LOG_TERMINAL
+    // Print log entry to PC Terminal
     printf("%02X ", BIG_PACKET);
     for(uint8_t i=0; i < LOG_ENTRY_SIZE_BYTES; i++){
         printf("%02X ", data_buf[i]);
@@ -147,6 +152,16 @@ bool log_read_entry(uint32_t addr){
     printf("CRC: %02X\n", crc);
     nrf_delay_us(250);
     return true;
+    #else
+    // Send log entry to PC log reader
+    struct packet log_p;
+    log_p.header = LOG_CHAR;
+    log_p.data = data_buf;
+    log_p.crc8 = crc;
+    rs232_putchar(log_p.header);
+    rs232_putchar(log_p.data);
+    rs232_putchar(log_p.crc8);
+    #endif
 }
 
 void log_dump(){

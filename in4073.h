@@ -13,16 +13,15 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
+#include "pc_terminal/protocol.h"
 #include "nrf_gpio.h"
 #include "nrf_delay.h"
 #include "inv_mpu.h"
 #include "inv_mpu_dmp_motion_driver.h"
 #include "ml.h"
 #include "app_util_platform.h"
-#include <math.h>
-#include "pc_terminal/protocol.h"
-#include <stdbool.h>
-#include "crc.h"
 
 #define RED			22
 #define YELLOW		24
@@ -125,6 +124,10 @@ queue ble_tx_queue;
 volatile bool radio_active;
 void ble_init(void);
 void ble_send(void);
+
+//CRC8
+uint8_t make_crc8_tabled(uint8_t header, uint8_t data[], uint8_t numDataBytes);
+uint8_t make_crc8_nontabled(uint8_t header, uint8_t data[], uint8_t numDataBytes);
 
 // Logger
 #define FLASH_ADDR_LIMIT   		0x01FFFF    // Maximum flash address

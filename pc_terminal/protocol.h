@@ -41,6 +41,7 @@ void detect_term_input(char);
 #define CON_PARAM		0x96
 #define CAL_GET			0x97
 #define BIG_PACKET		0x98
+#define LOG_CHAR        0xA0
 	
 
 

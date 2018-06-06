@@ -14,10 +14,8 @@
  */
 
 #include "in4073.h"
-#include <stdbool.h>
 #include <sys/time.h>
 #include "pc_terminal/protocol.h"
-#include "crc.h"
 
 #define MAX_PACKET_SIZE 10
 #define BATTERY_CONNECTED 0
@@ -66,25 +64,25 @@ void process_packet(){
 					break;
 				}
 				// Check if it's a header byte
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
+				else if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
 					headerFound = true;
 				}
-				if(readByte == BAT){
+				else if(readByte == BAT){
 					// 2 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 3;
 					headerFound = true;
 				}
-				if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
+				else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
 					// 4 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 5;
 					headerFound = true;
 				}
-				if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
+				else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
 					// 8 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 9;

@@ -9,12 +9,11 @@
  * https://barrgroup.com/Embedded-Systems/How-To/CRC-Calculation-C-Code
  * Author: Niels Versluis - 4227646
  *--------------------------------------------------------------------*/
-#include <stdint.h>
-#include <stdio.h>
-#include "crc.h"
+#include "in4073.h"
 
-// Needed for bench, but only on PC
-#ifndef _CRC_LIB_H
+#define PC_BENCH 0
+
+#if PC_BENCH
 #include <sys/time.h>
 #endif
 
@@ -108,7 +107,7 @@ uint8_t make_crc8_nontabled(uint8_t header, uint8_t data[], uint8_t numDataBytes
 }
 
 // Benchmark function. Only runs on PC.
-#ifndef _CRC_LIB_H
+#if PC_BENCH
 int main(){
     // Test data
     char hdr_test = 0x01;
