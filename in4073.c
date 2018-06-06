@@ -297,6 +297,7 @@ int main(void)
 	if (BATTERY_CONNECTED){
 		check_battery();
 	}
+	printf("Entering main loop...\n");
 	while (!demo_done && !low_battery)
 	{
 		// if(rx_queue.count > 0){
@@ -309,7 +310,7 @@ int main(void)
 
 		process_packet();
 //		if (rx_queue.count) process_key( dequeue(&rx_queue) );
-//
+		
  		if (check_timer_flag()) 
 		{
 			#if LOG_DEBUG
@@ -334,16 +335,16 @@ int main(void)
 
 			// adc_request_sample();
 			// read_baro();
-//
+
 			// printf("%10ld | ", get_time_us());
 			// printf("%3d %3d %3d %3d | ",ae[0],ae[1],ae[2],ae[3]);
 			// printf("%6d %6d %6d | ", phi, theta, psi);
 			// printf("%6d %6d %6d | ", sp, sq, sr);
-			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);
-//
+			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);=
+
  			clear_timer_flag();
  		}
-//
+
 		
 		if (check_sensor_int_flag()) 
 		{

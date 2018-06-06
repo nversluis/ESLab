@@ -234,30 +234,29 @@ int main(int argc, char **argv)
     */
 
 
-    //Ping timing test.
-    /*
-    bool response_found = false;
-    printf("Start pings.\n");
-    ftime(&start);
-    for(uint8_t i=0; i<100; i++){
-		rs232_putchar(PING);
-		while(!response_found){
-			if((c = rs232_getchar_nb()) != -1){
-				//printf("%c", c);
-				if(c == PING){
-					response_found = true;
-				}
-			}
-		}
-		response_found = false;
-	}
-	ftime(&end);
-	ftime(&delta);
-	printf("End pings.\n");
-    diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
-    diffd = (int) (1000.0 * (delta.time - end.time) + (delta.millitm - end.millitm));
-    printf("\nPings took %u milliseconds, delta was %u.\n", diff, diffd);
-    */
+ //    //Ping timing test.
+ //    sleep(2);
+ //    bool response_found = false;
+ //    printf("Start pings.\n");
+ //    ftime(&start);
+ //    uint8_t i = 0;
+ //    for(i=0; i<100; i++){
+	// 	rs232_putchar(PING);
+	// 	while(!response_found){
+	// 		if((c = rs232_getchar_nb()) != -1){
+	// 			//printf("%c", c);
+	// 			if(c == PING){
+	// 				response_found = true;
+	// 			}
+	// 		}
+	// 	}
+	// 	response_found = false;
+	// }
+	// ftime(&end);
+	// printf("End pings.\n");
+ //    diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
+ //    printf("\n%d pings took %u milliseconds. Milliseconds per ping: %.2f\n", i, diff, (float)((float)diff/i));
+    
 
 	// Ping test with data and CRC.
 	/*
@@ -281,7 +280,7 @@ int main(int argc, char **argv)
 	*/
 
 
-	//sleep(100);
+	// sleep(100);
 	/* send & receive
 	 */
 	for (;;)

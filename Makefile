@@ -247,6 +247,7 @@ pc-run:
 	cd pc_terminal/; sudo make run
 	
 upload-run: default pc
+	sudo ./low_latency.sh
 	sudo dfu_serial/./serial_dfu.py  _build/in4073.bin
 	cd pc_terminal/; sudo make run
 endif

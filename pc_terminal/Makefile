@@ -7,3 +7,4 @@ all:
 
 run: all
 	$(EXEC)
+	#nice -n -20 $(EXEC)
