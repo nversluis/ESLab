@@ -15,6 +15,7 @@
 #include <stdlib.h>
 
 bool butter_flag = true;
+uint8_t height_flag =0;
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
 * 						corresponding rotor rpm values.
@@ -319,6 +320,64 @@ void full_control(){
 		#endif
 	}
 }
+
+/*
+*-----------------------------------------------------------------------------------------
+* height_control() - Function to control the height of the drone autonomously when the drone 
+* 					 enters height control mode
+*
+* Author: Himanshu Shah
+* Date : 06/06/18
+*------------------------------------------------------------------------------------------
+*/
+void height_control(){
+	
+	static int32_t height_error = 0, adjusted_lift = 0, desired_pressure = 0;
+	int16_t kl = 100;
+	
+	for(uint8_t i =0; i<4; i++){
+		LRPY16[i]=LRPY[i]<<8;
+	}
+
+	for(uint8_t i=0; i<4; i++){
+			ae[i]=0;
+	}
+
+	if(LRPY[0] > 10 || LRPY[0] < -10){
+
+		kl += k_LRPY[7];
+		if(kl < 1){
+			kl = 1;
+			k_LRPY[7]=0;
+		}
+
+		if(check_sensor_int_flag()){
+			get_dmp_data();
+		}
+		read_baro();
+		if(height_flag<20){
+			height_flag++;
+			desired_pressure = pressure;
+		}
+		height_error = pressure - desired_pressure;
+		adjusted_lift = (uint16_t)LRPY16[0] + (kl * height_error);
+		convert_to_rpm((uint16_t)adjusted_lift, LRPY16[1], LRPY16[2], LRPY16[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kl:%d\n", ae[0], ae[1],ae[2],ae[3],kl);
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],LRPY[3]);
+		//printf("desired: %d, pressure: %d, height_error:%d\n", desired_pressure, pressure, height_error);
+
+	}
+	else{
+		for(uint8_t i=0; i<4; i++){
+			ae[i]=0;
+		}
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);	
+		
+	}
+
+}
+
+
 
 
 void update_motors(void)
