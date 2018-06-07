@@ -148,7 +148,7 @@ bool log_read_entry(uint32_t addr){
         printf("%02X ", data_buf[i]);
         nrf_delay_us(250);
     }
-    printf("CRC: %02X\n", crc);
+    //printf("CRC: %02X\n", crc);
     nrf_delay_us(250);
     #else
     // Send log entry to PC log reader

@@ -119,8 +119,8 @@ void rs232_open(void)
 	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; /* 8 bits-per-character */
 	tty.c_cflag |= CLOCAL | CREAD; /* Ignore model status + read input */
 
-	cfsetospeed(&tty, B115200);
-	cfsetispeed(&tty, B115200);
+	cfsetospeed(&tty, B921600); // B115200 B921600
+	cfsetispeed(&tty, B921600); // B115200
 
 	tty.c_cc[VMIN]  = 0;
 	tty.c_cc[VTIME] = 0; // added timeout
@@ -244,8 +244,8 @@ int main(int argc, char **argv)
  //    bool response_found = false;
  //    printf("Start pings.\n");
  //    ftime(&start);
- //    uint8_t i = 0;
- //    for(i=0; i<100; i++){
+ //    uint32_t i = 0;
+ //    for(i=0; i<1000; i++){
 	// 	rs232_putchar(PING);
 	// 	while(!response_found){
 	// 		if((c = rs232_getchar_nb()) != -1){
