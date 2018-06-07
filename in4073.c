@@ -44,6 +44,7 @@ void process_packet(){
 
 	if(rx_queue.count > 0){
 		readByte = dequeue(&rx_queue);
+		received_data = true;
 		//printf("Readbyte: 0x%02X, car is 0x%02X\n", readByte, PING);
 		if(readByte == PING){
 			uart_put(PING);
@@ -53,14 +54,14 @@ void process_packet(){
 		
 		switch(inPacketState){
 			case 0:
-				if(readByte == PING){
-					uart_put(PING);
-					//printf("Pin received.\n");
-					inPacketState = 0;
-					break;
-				}
+				// if(readByte == PING){
+				// 	uart_put(PING);
+				// 	//printf("Pin received.\n");
+				// 	inPacketState = 0;
+				// 	break;
+				// }
 				// Check if it's a header byte
-				else if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
@@ -165,7 +166,10 @@ void process_packet(){
 							break;
 						case PING_DATCRC:
 							dat_temp = PING_DATCRC;
+							#if PACKET_DEBUG == 1
 							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
+							#endif
+							break;
 						default:
 							//For now just return the packet
 							printf("Packet: ");
@@ -273,6 +277,9 @@ void process_key(uint8_t c)
 int main(void)
 {
 	QuadState = SAFE;
+	received_data = true;
+	BlinkLed = false;
+	USBDisconnected = false;
 	uart_init();
 	gpio_init();
 	timers_init();
@@ -292,6 +299,7 @@ int main(void)
 	if (BATTERY_CONNECTED){
 		check_battery();
 	}
+	printf("BLINKLED_CYCLES: %u, USB_TIMEOUT_CYCLES: %u, USB_TIMEOUT_MS: %u, KEEP_ALIVE_TIMEOUT_MS: %u.\n", BLINKLED_CYCLES, USB_TIMEOUT_CYCLES, USB_TIMEOUT_MS, KEEP_ALIVE_TIMEOUT_MS);
 	printf("Entering main loop...\n");
 	while (!demo_done && !low_battery)
 	{
@@ -308,22 +316,45 @@ int main(void)
 
  		if (check_timer_flag()) 
 		{
+			counter++;
+
 			#if LOG_DEBUG
-			if (counter++%1 == 0){
+			if (counter%1 == 0){
 			#else
-			if (counter++%20 == 0){
+			if (counter%20 == 0){
 			#endif
-			logger_main();
+				logger_main();
 			}
 
+			// Check for battery voltage
 			if(counter%200 == 0){
 				adc_request_sample();
 			}
-
 			if(counter%200 == 20){
 				if (BATTERY_CONNECTED){
 					check_battery();
 				}
+			}
+
+			// Check for dead usb connection -- Mark Röling
+			if(counter%(USB_TIMEOUT_CYCLES) == 0){
+				if(received_data){
+					// All is good
+					received_data = false;
+					BlinkLed = false;
+					nrf_gpio_pins_clear(BLUE);
+					USBDisconnected = false;
+				}else{
+					// Shit hit the fan
+					QuadState = PANIC;
+					BlinkLed = true;
+					USBDisconnected = true;
+				}
+			}
+
+			// Blink led -- Mark Röling
+			if(BlinkLed && counter%(BLINKLED_CYCLES) == 0){
+				nrf_gpio_pin_toggle(BLUE);
 			}
 
 			run_control();

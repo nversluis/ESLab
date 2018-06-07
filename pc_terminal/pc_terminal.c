@@ -186,16 +186,20 @@ int 	rs232_putchar(char c)
 /*----------------------------------------------------------------
  * main -- execute terminal
  * 
- * Mods: Himanshu Shah
+ * Mods: Himanshu Shah, Mark Röling
  * Date: 03/05/18
  *----------------------------------------------------------------
  */
+
+
+#define JOYSTICK_HZ 100
+
 int main(int argc, char **argv)
 {
 	struct timeb time_buffer;
 	char	c;
 	char c2;
-	time_t start_time, end_time;
+	time_t start_time, end_time, keep_alive_previous, keep_alive_current;
 	struct timeb start, end, delta;
     int diff, diffd;
 
@@ -217,6 +221,8 @@ int main(int argc, char **argv)
 	ftime(&time_buffer);
 	start_time=time_buffer.time*1000 + time_buffer.millitm;
 	end_time = start_time;
+	keep_alive_previous = start_time;
+	keep_alive_current = start_time;
 	
 
 	// Joystick timing test.
@@ -286,7 +292,7 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		read_js_values();
-		if((start_time + 10) >= end_time){
+		if((start_time + (1000/JOYSTICK_HZ)) >= end_time){
 
 			if ((c = term_getchar_nb()) != -1){
 				//printf("Character found: %c\n", c);
@@ -311,6 +317,20 @@ int main(int argc, char **argv)
 					//break;
 				}
 			}else{
+				ftime(&time_buffer);
+				keep_alive_current=time_buffer.time*1000 + time_buffer.millitm;
+				if(keep_alive_current > (keep_alive_previous + KEEP_ALIVE_TIMEOUT_MS)){ // 1 second keepalive
+					keep_alive_previous = keep_alive_current;
+					struct packet p_obj;
+					p_obj.header=PING_DATCRC;
+					p_obj.data=PING_DATCRC;
+					p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+					rs232_putchar(p_obj.header);
+					rs232_putchar(p_obj.data);
+					rs232_putchar(p_obj.crc8);
+
+					// TODO: maybe integrate no-ping response message?
+				}
 				//printf("Nothing should be found really...\n");
 			}
 
@@ -327,6 +347,7 @@ int main(int argc, char **argv)
 			ftime(&time_buffer);
 			end_time = start_time;
 			start_time=time_buffer.time*1000 + time_buffer.millitm;
+			keep_alive_previous = start_time; // update the keepalive
 			send_j_packet();
 		}
 		//usleep(10000)

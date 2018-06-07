@@ -99,14 +99,18 @@ void yaw_control(){
 		adjusted_yaw = kp * yaw_error;
 
 		convert_to_rpm((uint16_t)LRPY16[0], LRPY16[1], LRPY16[2], adjusted_yaw);
+		#if MOTOR_VALUES_DEBUG == 1
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
 		//printf("kp:%d\n", kp);	
+		#endif
 	}
 	else{
 		for(uint8_t i=0; i<4; i++){
 			ae[i]=0;
 		}
+		#if MOTOR_VALUES_DEBUG == 1
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		#endif
 	}
 }
 
@@ -161,14 +165,17 @@ void full_control(){
 		adjusted_yaw = kp * yaw_error;
 
 		convert_to_rpm((uint16_t)LRPY16[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
+		#if MOTOR_VALUES_DEBUG == 1
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
-		//printf("kp:%d,kp1:%d,kp2:%d\n", kp, kp1,kp2);	
-	}
-	else{
+		//printf("kp:%d,kp1:%d,kp2:%d\n", kp, kp1,kp2);
+		#endif
+	}else{
 		for(uint8_t i=0; i<4; i++){
 			ae[i]=0;
 		}
+		#if MOTOR_VALUES_DEBUG == 1
 		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		#endif
 	}
 }
 
@@ -272,6 +279,17 @@ void run_control() // 250Hz
 				QuadState = SAFE;
 			}
 			break;
+		case SAFE_DISCONNECTED:
+			//printf("S\n");
+			ae[0] = 0;
+			ae[1] = 0;
+			ae[2] = 0;
+			ae[3] = 0;
+			if(USBDisconnected == false){
+				QuadState = SAFE_NONZERO;
+				printf("Initiate SAFE_NONZERO mode.\n");
+			}
+			break;
 		case PANIC:
 			printf("Initiate PANIC mode.\n");
 			//initiate PANIC mode
@@ -285,8 +303,13 @@ void run_control() // 250Hz
 				if(ae[2]>0) ae[2]--;
 				if(ae[3]>0) ae[3]--;
 			}else{
-				QuadState = SAFE_NONZERO;
-				printf("Initiate SAFE_NONZERO mode.\n");
+				if(USBDisconnected == false){
+					QuadState = SAFE_NONZERO;
+					printf("Initiate SAFE_NONZERO mode.\n");
+				}else{
+					QuadState = SAFE_DISCONNECTED;
+					printf("Initiate SAFE_DISCONNECTED mode.\n");
+				}
 			}
 			break;
 		case MANUAL:
@@ -295,7 +318,9 @@ void run_control() // 250Hz
 				LRPY16[i]=LRPY[i]<<8;
 			}
 			convert_to_rpm((uint16_t)LRPY16[0],LRPY16[1], LRPY16[2], LRPY16[3]);
+			#if MOTOR_VALUES_DEBUG == 1
 			printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
+			#endif
 			break;
 		case CALIBRATION_ENTER:
 			printf("Initiate CALIBRATION mode.\n");

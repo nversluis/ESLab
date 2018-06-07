@@ -25,11 +25,19 @@
 #include "crc.h"
 
 #define CONTROLLER 1
-#define NON_ZERO_DEBUG	 1
-#define MAX_PACKET_SIZE 10
+#define NON_ZERO_DEBUG	 0
 #define BATTERY_CONNECTED 0
 #define PACKET_DEBUG 0
 #define LOG_DEBUG 1
+#define MOTOR_VALUES_DEBUG 0
+
+#define TIMER_PERIOD	4 //50ms=20Hz (MAX 23bit, 4.6h), 4ms = 250Hz
+#define MAX_PACKET_SIZE 10
+#define CALIBRATION_TIME_US 3000000
+#define USB_TIMEOUT_MS (KEEP_ALIVE_TIMEOUT_MS + 500)
+#define USB_TIMEOUT_CYCLES (USB_TIMEOUT_MS/TIMER_PERIOD)
+#define BLINKLED_HZ 5
+#define BLINKLED_CYCLES (500/(TIMER_PERIOD*BLINKLED_HZ))
 
 #define RED			22
 #define YELLOW		24
@@ -41,11 +49,13 @@ uint8_t QuadState;
 uint8_t ModeToSet;
 uint8_t PreviousMode;
 uint32_t CalibrationStartTime;
-#define CALIBRATION_TIME_US 3000000
 int8_t LRPY[4];
 int16_t k_LRPY[7];
 int16_t LRPY16[4];
 
+bool received_data;
+bool BlinkLed;
+bool USBDisconnected;
 bool demo_done;
 
 // Control
@@ -54,7 +64,6 @@ void run_filters();
 void run_control();
 
 // Timers
-#define TIMER_PERIOD	4 //50ms=20Hz (MAX 23bit, 4.6h), 4ms = 250Hz
 void timers_init(void);
 uint32_t get_time_us(void);
 bool check_timer_flag(void);
