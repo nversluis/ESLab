@@ -182,7 +182,6 @@ int 	rs232_putchar(char c)
 	return result;
 }
 
-
 /*----------------------------------------------------------------
  * main -- execute terminal
  * 
@@ -300,35 +299,7 @@ int main(int argc, char **argv)
 
 				if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
 					if((c2 = term_getchar_nb()) == -1){
-						struct packet p_obj;
-						p_obj.header=MODESET;
-						p_obj.data=PANIC;
-						p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
-						//TODO: implement queue to send packets
-						rs232_putchar(p_obj.header);
-						rs232_putchar(p_obj.data);
-						rs232_putchar(p_obj.crc8);
-
-						rs232_putchar(p_obj.header);
-						rs232_putchar(p_obj.data);
-						rs232_putchar(p_obj.crc8);
-
-						rs232_putchar(p_obj.header);
-						rs232_putchar(p_obj.data);
-						rs232_putchar(p_obj.crc8);
-
-						while ((c = rs232_getchar_nb()) != -1){
-							term_putchar(c);
-						}
-
-						sleep(1);
-						rs232_putchar(p_obj.header);
-						rs232_putchar(p_obj.data);
-						rs232_putchar(p_obj.crc8);
-
-						while ((c = rs232_getchar_nb()) != -1){
-							term_putchar(c);
-						}
+						panic_now();
 						printf("Escape found.\n");
 						sleep(1);
 						break;

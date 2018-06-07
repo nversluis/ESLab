@@ -128,5 +128,6 @@ struct JS_DATA_SAVE_TYPE {
 void init_js();
 void send_j_packet();
 void read_js_values();
+void panic_now();
 
 #endif /* _LINUX_JOYSTICK_H */

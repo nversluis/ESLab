@@ -70,6 +70,41 @@ void j_scale(int16_t axis[])
 }
 */
 
+
+void panic_now(){
+	char c;
+	struct packet p_obj;
+	p_obj.header=MODESET;
+	p_obj.data=PANIC;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+	//TODO: implement queue to send packets
+	rs232_putchar(p_obj.header);
+	rs232_putchar(p_obj.data);
+	rs232_putchar(p_obj.crc8);
+
+	rs232_putchar(p_obj.header);
+	rs232_putchar(p_obj.data);
+	rs232_putchar(p_obj.crc8);
+
+	rs232_putchar(p_obj.header);
+	rs232_putchar(p_obj.data);
+	rs232_putchar(p_obj.crc8);
+
+	while ((c = rs232_getchar_nb()) != -1){
+		term_putchar(c);
+	}
+
+	sleep(1);
+	rs232_putchar(p_obj.header);
+	rs232_putchar(p_obj.data);
+	rs232_putchar(p_obj.crc8);
+
+	while ((c = rs232_getchar_nb()) != -1){
+		term_putchar(c);
+	}
+
+}
+
 void    mon_delay_ms(unsigned int ms)
 {
         struct timespec req, rem;
@@ -137,13 +172,7 @@ void read_js_values(){
 		}
 	}
 	if (errno != EAGAIN) {
-		j_obj.header=MODESET;
-		j_obj.data=PANIC;
-		j_obj.crc8=make_crc8_tabled(j_obj.header, &j_obj.data, 1);								
-		//term_puts("Entering PANIC mode.....");
-		rs232_putchar(j_obj.header);
-		rs232_putchar(j_obj.data);
-		rs232_putchar(j_obj.crc8);
+		panic_now();
 		sleep(1);
 		perror("\njs: error reading (EAGAIN)");
 		exit (1);
