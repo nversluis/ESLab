@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 			if ((c = rs232_getchar_nb()) != -1){
 				term_putchar(c);
 			}
-        	
+			
 			//send_j_packet();
 		
 			ftime(&time_buffer);
