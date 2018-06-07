@@ -14,6 +14,7 @@
 #include "pc_terminal/protocol.h"
 #include <stdlib.h>
 
+bool butter_flag = true;
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
 * 						corresponding rotor rpm values.
@@ -62,6 +63,146 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 	}
 	//printf("\n");
 }
+
+/*----------------------------------------------------------------
+ * float2fix -- convert float to fixed point 18+14 bits
+ *----------------------------------------------------------------
+ */
+int     float2fix(double x)
+{
+	int	y;
+
+	y = x * (1 << 14);
+	return y;
+}
+
+
+/*----------------------------------------------------------------
+ * fix2float -- convert fixed 18+14 bits to float
+ *----------------------------------------------------------------
+ */
+double 	fix2float(int x)
+{
+	double	y;
+
+	y = ((double) x) / (1 << 14);
+	return y;
+}
+
+
+/*----------------------------------------------------------------
+ * fixmul -- multiply fixed 18+14 bits to float
+ *----------------------------------------------------------------
+ */
+double 	fixmul(int x1, int x2)
+{
+	int	y;
+
+	y = x1 * x2; // Note: be sure this fits in 32 bits !!!!
+	y = (y >> 14);
+	return y;
+}
+
+
+/*
+*-----------------------------------------------------------------------------------------
+* butterworth_filter() -	
+* 					
+*
+* Author: Satish Singh
+* Date : 03/06/18
+*------------------------------------------------------------------------------------------
+*/
+
+void butterworth_filter(){
+	static uint32_t x[3] = {0,0,0}, y[3] = {0,0,0}, gain, b1, b2, a0, a1, a2;
+	if(butter_flag){
+		gain = float2fix(14.82463775);
+		a0 = float2fix(1);
+		a1 = float2fix(2);
+		a2 = float2fix(1);
+		b2 = float2fix(0.4128015981);
+		b1 = float2fix(1.1429805025);
+		y[0] = float2fix(y[0]);
+		y[1] = float2fix(y[1]);
+		for(uint8_t i=0; i<3; i++){
+			x[i] = float2fix(x[i]);
+		}
+	}
+	//if(LRPY[0] > 10 || LRPY[0] < -10){
+		if (check_sensor_int_flag()) 
+		{
+			get_raw_sensor_data();
+		}
+		for(uint8_t i=2; i>0; i--){
+			x[i] = x[i-1];
+			y[i] = y[i-1];
+		}
+		x[0] = float2fix(sr)/gain;
+		y[0] = (fixmul(a0,x[0]) + fixmul(a1,x[1]) + fixmul(a2,x[2]) - fixmul(-b2,y[2]) - fixmul(b1,y[1]));
+		filtered_sr = fix2float(y[0]);
+	//}
+	//else{
+	//	for(uint8_t i=0; i<4; i++){
+	//		ae[i]=0;
+	//	}
+		printf("sr: %06d filetered: %06d\n", sr, 10*filtered_sr);
+	//}
+}
+
+
+
+/*
+*-----------------------------------------------------------------------------------------
+* kalman_filter() -	
+* 					
+*
+* Author: Satish Singh
+* Date : 03/06/18
+*------------------------------------------------------------------------------------------
+*/
+
+
+//void kalman_filter(){
+//
+//	static int32_t p2phi, new_p_bias, new_q_bias, old_p_bias, old_q_bias, c1, q, c2, p, new_phi, old_phi, new_theta, old_theta, phi_error, theta_error; 
+//	if(kalman_flag){
+//		kalman_flag = false;
+//		old_q_bias = 0;
+//		old_p_bias = 0;
+//		new_q_bias = 0;
+//		new_p_bias = 0;
+//		p2phi = float2fix(0.0023); 
+//		c1 = float2fix(256);
+//		c2 = float2fix(1000000);
+//		old_phi = float2fix(0);
+//		old_theta = float2fix(0);	
+//	}
+//	if(check_sensor_int_flag()){
+//		get_raw_sensor_data();
+//	}
+//	p = fix2float(sp) - old_p_bias;
+//	new_phi = old_phi + (fixmul(p,p2phi));
+//	new_phi = new_phi - (new_phi - float2fix(say))/c1;
+//	new_p_bias = old_p_bias + (new_phi - (float2fix(say)))/c2;
+//	//p = fix2float(p);
+//	//phi_error = fix2float(phi_error);
+//	old_p_bias = new_p_bias;
+//	old_phi = new_phi;
+//
+//
+//	//q = sq - q_bias;
+//	//est_theta = est_theta + (fixmul(q,p2phi));
+//	//theta_error = est_theta - (est_theta - float2fix(sax))/c1;
+//	//q_bias = q_bias + (est_theta - (float2fix(sax)/p2phi))/c2;
+//	////q = fix2float(q);
+//	////theta_error = fix2float(theta_error);
+//
+//
+//	printf("new_phi: %d phi: %d\n", new_phi, phi);
+//	
+//}
+
 
 
 /*-----------------------------------------------------------------------------------------
