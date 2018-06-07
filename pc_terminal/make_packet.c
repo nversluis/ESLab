@@ -89,32 +89,42 @@ void detect_term_input(char c){
                  break;
         case 'u':
                  p_obj.header=K_P;
-                 p_obj.data=INCREASEPROP;
+                 p_obj.data=INCREASE;
                  data_detected=1;
                  break;
         case 'j': 
                  p_obj.header=K_P;
-                 p_obj.data=DECREASEPROP;
+                 p_obj.data=DECREASE;
                  data_detected=1;
                  break;
         case 'i':
                  p_obj.header=K_P1;
-                 p_obj.data=INCREASEPROP;
+                 p_obj.data=INCREASE;
                  data_detected=1;
                  break;
         case 'k': 
                  p_obj.header=K_P1;
-                 p_obj.data=DECREASEPROP;
+                 p_obj.data=DECREASE;
                  data_detected=1;
                  break;
         case 'o':
                  p_obj.header=K_P2;
-                 p_obj.data=INCREASEPROP;
+                 p_obj.data=INCREASE;
                  data_detected=1;
                  break;
         case 'l': 
                  p_obj.header=K_P2;
-                 p_obj.data=DECREASEPROP;
+                 p_obj.data=DECREASE;
+                 data_detected=1;
+                 break;
+        case 'y':
+                 p_obj.header=K_HEIGHT;
+                 p_obj.data=INCREASE;
+                 data_detected=1;
+                 break;
+        case 'h':
+                 p_obj.header=K_HEIGHT;
+                 p_obj.data=DECREASE;
                  data_detected=1;
                  break;
         case 'A':

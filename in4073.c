@@ -61,7 +61,7 @@ void process_packet(){
 				// 	break;
 				// }
 				// Check if it's a header byte
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_PITCH || readByte == PING_DATCRC){
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
@@ -163,6 +163,9 @@ void process_packet(){
 							break;
 						case K_P2:
 							k_LRPY[6]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_HEIGHT:
+							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
 							break;
 						case PING_DATCRC:
 							dat_temp = PING_DATCRC;

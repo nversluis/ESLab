@@ -28,6 +28,7 @@ void detect_term_input(char);
 #define K_P             0x86
 #define K_P1            0x89
 #define K_P2            0x8A
+#define K_HEIGHT        0x8B
 //#define PING			0x87
 #define PING			'h'
 #define PING_DATCRC		0x88
@@ -67,8 +68,8 @@ void detect_term_input(char);
 //Some escape value
 #define ABORT			0x60
 
-#define INCREASEPROP    1
-#define DECREASEPROP    -1
+//#define INCREASEPROP    1
+//#define DECREASEPROP    -1
 #define DECREASE		-1
 #define INCREASE		1
 

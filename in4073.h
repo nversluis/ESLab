@@ -50,8 +50,9 @@ uint8_t ModeToSet;
 uint8_t PreviousMode;
 uint32_t CalibrationStartTime;
 int8_t LRPY[4];
-int16_t k_LRPY[7];
+int16_t k_LRPY[8];
 int16_t LRPY16[4];
+int32_t filtered_sr;
 
 bool received_data;
 bool BlinkLed;
