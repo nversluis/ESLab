@@ -275,10 +275,10 @@ void full_control(){
 	int8_t kp = 1,kp1 = 1,kp2 = 1;
 
 	for(int8_t i=0; i<4; i++){
-		LRPY16[i] = LRPY[i]<<8;
+		LRPY16[i] = ((int16_t)(LRPY[i]))<<8;
 	}
 
-	if(LRPY[0] > 10 || LRPY[0] < -10){
+	if((uint8_t)LRPY[0] > 10){
 		if (check_sensor_int_flag()) 
 		{
 			get_dmp_data();
@@ -572,36 +572,70 @@ void run_control() // 250Hz
 				break;
 			}
 
-			// Only go to DUMPLOGS and CALIBRATION from SAFE modes.
-			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION )){
-				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
+			// Don't allow any mode changes from PANIC or SAFE_NONZERO.
+			if(PreviousMode == PANIC || PreviousMode == PANIC_COUNTDOWN || PreviousMode == SAFE_NONZERO){
+				// printf("Can't statechange out of protected modes.\n");
+				QuadState = PreviousMode;
+				break;
+			}
+
+			// Check full to heigth and vice-versa
+			if(ModeToSet == FULLCONTROL){
+				if(PreviousMode == HEIGHT || PreviousMode == SAFE){
+					printf("FULLCONTROL set.\n");
 					QuadState = ModeToSet;
-					if(ModeToSet == CALIBRATION){
-						QuadState = CALIBRATION_ENTER;
-					}
 					break;
 				}else{
+					printf("Cannot change flight modes, you're not in SAFE mode.\n");
+					QuadState = PreviousMode;
+					break;
+				}
+			}
+			if(ModeToSet == HEIGHT){
+				if(PreviousMode == FULLCONTROL || PreviousMode == SAFE){
+					printf("HEIGHT set.\n");
+					QuadState = ModeToSet;
+					break;
+				}else{
+					printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
 				}
 			}
 
-
-			// Don't allow any mode changes from PANIC or SAFE_NONZERO.
-			if(PreviousMode != PANIC && PreviousMode != PANIC_COUNTDOWN && PreviousMode != SAFE_NONZERO){
-				if(ModeToSet == MANUAL){
-					printf("Initiated MANUAL mode.\n");
-				}else if(ModeToSet == PANIC){
-					printf("Initiated PANIC mode.\n");
+			// Check Flights only from safe
+			if(ModeToSet == MANUAL || ModeToSet == YAWCONTROL){
+				if(PreviousMode == SAFE){
+					printf("MANUAL or YAWCONTROL set.\n");
+					QuadState = ModeToSet;
+					break;
 				}else{
-					printf("Initiated 0x%02X mode.\n", ModeToSet);
+					printf("Cannot change flight modes, you're not in SAFE mode.\n");
+					QuadState = PreviousMode;
+					break;
 				}
-				QuadState = ModeToSet;
-				break;
 			}
 
-			// Assume all is normal.
-			QuadState = PreviousMode;
+			// Only go to DUMPLOGS and CALIBRATION from SAFE modes.
+			if((ModeToSet == DUMPLOGS || ModeToSet == CALIBRATION )){
+				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
+					QuadState = ModeToSet;
+					if(ModeToSet == CALIBRATION){
+						printf("CALIBRATION mode set.\n");
+						QuadState = CALIBRATION_ENTER;
+					}else{
+						printf("DUMPLOGS mode set.\n");
+					}
+					break;
+				}else{
+					printf("Cannot change to logs/calibration modes, you're not in SAFE mode.\n");
+					QuadState = PreviousMode;
+					break;
+				}
+			}
+
+			// Something went wrong
+			QuadState = PANIC;
 			break;
 		default:
 			QuadState = PANIC;
