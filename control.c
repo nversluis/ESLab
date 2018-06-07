@@ -147,7 +147,7 @@ void butterworth_filter(){
 	//	for(uint8_t i=0; i<4; i++){
 	//		ae[i]=0;
 	//	}
-		printf("sr: %06d filetered: %06d\n", sr, 10*filtered_sr);
+		printf("sr: %06d filetered: %06ld\n", sr, 10*filtered_sr);
 	//}
 }
 
