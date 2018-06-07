@@ -110,7 +110,7 @@ bool log_write(uint32_t addr){
 
 }
 
-// Push all log data to the PC
+// Push data of a single log entry to the PC
 // Returns true on success, false on failure
 bool log_read_entry(uint32_t addr){
     if(!log_init_done){
@@ -124,7 +124,7 @@ bool log_read_entry(uint32_t addr){
     // Create data buffer
     uint8_t data_buf[LOG_ENTRY_SIZE_BYTES];
     flash_read_bytes(addr, data_buf, LOG_ENTRY_SIZE_BYTES);
-    uint8_t crc = make_crc8_tabled(BIG_PACKET, data_buf, LOG_ENTRY_SIZE_BYTES);
+
     #if LOG_READ_DEBUG
     printf("Entry(%lx): ", addr);
     #endif
@@ -141,7 +141,6 @@ bool log_read_entry(uint32_t addr){
         return false;
     }
 
-
     #if LOG_TERMINAL
     // Print log entry to PC Terminal
     printf("%02X ", BIG_PACKET);
@@ -151,21 +150,26 @@ bool log_read_entry(uint32_t addr){
     }
     printf("CRC: %02X\n", crc);
     nrf_delay_us(250);
-    return true;
     #else
     // Send log entry to PC log reader
-    struct packet log_p;
-    log_p.header = LOG_CHAR;
-    log_p.data = data_buf;
-    log_p.crc8 = crc;
-    rs232_putchar(log_p.header);
-    rs232_putchar(log_p.data);
-    rs232_putchar(log_p.crc8);
+    uint8_t crc = make_crc8_tabled(LOG_ENTRY, data_buf, LOG_ENTRY_SIZE_BYTES);
+    // Header
+    uart_put(LOG_ENTRY);
+    // Data
+    for(uint8_t j = 0; j < LOG_ENTRY_SIZE_BYTES; j++){
+            uart_put(data_buf[j]);
+    }
+    // CRC8
+    uart_put(crc);
     #endif
+    return true;
 }
 
+// Dump all log entries to PC
 void log_dump(){
     printf("INFO: Log dump started.\n");
+    // Send log start packet
+    uart_put(LOG_START);
     // Iterate starting from last address that contains data
     int32_t i = write_addr - LOG_ENTRY_SIZE_BYTES;
     // Normal readout
@@ -193,6 +197,8 @@ void log_dump(){
             }
         }			
     }
+    // Send log end packet
+    uart_put(LOG_END);
     printf("INFO: Log dump complete.\n");
     return;
 }

@@ -43,10 +43,9 @@ void detect_term_input(char);
 #define CON_PARAM		0x96
 #define CAL_GET			0x97
 #define BIG_PACKET		0x98
-#define LOG_CHAR        0xA0
-	
-
-
+#define LOG_ENTRY       0xA0
+#define LOG_START       0xA1
+#define LOG_END         0xA2
 
 //Mode values 
 #define SAFE            	0x11
@@ -75,7 +74,7 @@ void detect_term_input(char);
 
 struct packet{
     uint8_t header;
-    uint8_t data; //make it 1 byte for now, gonna fix this later
+    uint8_t data; //make it 1 byte for now, gonna fix this now
     uint8_t crc8;
 };
 
