@@ -35,7 +35,7 @@ uint8_t inPacketBufSize = 0;
 
 //Todo: change the headerFound to a goto to reduce cpu cycles
 void process_packet(){
-	bool CRCIsValid = true; // Set this to default false when CRC is actually implemented
+	bool CRCIsValid = false;
 	uint8_t readByte = 0;
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;

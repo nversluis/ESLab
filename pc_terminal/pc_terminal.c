@@ -182,6 +182,177 @@ int 	rs232_putchar(char c)
 	return result;
 }
 
+
+/*----------------------------------------------------------------
+ * process_packet -- the computer side state machine
+ * 
+ * Mods: Mark Röling
+ * Date: 07/06/18
+ *----------------------------------------------------------------
+ */
+
+void process_packet(){
+	bool CRCIsValid = false;
+	uint8_t readByte = 0;
+	uint8_t headerFound = false;
+	uint8_t crc_calc = 0;
+	uint8_t dat_temp = 0;
+
+
+	if(rx_queue.count > 0){
+		readByte = dequeue(&rx_queue);
+		received_data = true;
+		//printf("Readbyte: 0x%02X, car is 0x%02X\n", readByte, PING);
+		if(readByte == PING){
+			uart_put(PING);
+			//printf("Pin received.\n");
+			inPacketState = 0;
+		}
+		
+		switch(inPacketState){
+			case 0:
+				// if(readByte == PING){
+				// 	uart_put(PING);
+				// 	//printf("Pin received.\n");
+				// 	inPacketState = 0;
+				// 	break;
+				// }
+				// Check if it's a header byte
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC){
+					// 1 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 2;
+					headerFound = true;
+				}
+				else if(readByte == BAT){
+					// 2 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 3;
+					headerFound = true;
+				}
+				else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
+					// 4 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 5;
+					headerFound = true;
+				}
+				else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
+					// 8 Byte packets
+					headerByte = readByte;
+					totalBytesToRead = 9;
+					headerFound = true;
+				}
+
+				if(headerFound == true){
+					inPacketBufSize = 0;
+					inPacketState = 1;
+					#if PACKET_DEBUG == 1
+					printf("Header byte found: 0x%02X\n", headerByte);
+					#endif
+				}else{
+					#if PACKET_DEBUG == 1
+					printf("Non-header found:  0x%02X\n", readByte);
+					#endif
+				}
+				break;
+			case 1:
+				inPacketBuffer[inPacketBufSize++] = readByte;
+				
+				if(inPacketBufSize >= totalBytesToRead){
+					inPacketState = 2;
+					#if PACKET_DEBUG == 1
+					printf("CRC byte found:    0x%02X ", readByte);
+					#endif
+				}else{
+					#if PACKET_DEBUG == 1
+					printf("Data byte found:   0x%02X\n", readByte);
+					#endif
+					break;
+				}
+			case 2:
+				//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
+				crc_calc = make_crc8_tabled(headerByte, (uint8_t*)inPacketBuffer, inPacketBufSize-1);
+				if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
+					CRCIsValid = true;
+					#if PACKET_DEBUG == 1
+					printf("- Valid.\n");
+					#endif
+				}else{
+					CRCIsValid = false;
+					#if PACKET_DEBUG == 1
+					printf("- Invalid! Calculated CRC %02X, but got %02X\n", crc_calc, inPacketBuffer[inPacketBufSize-1]);
+					#endif
+				}
+				#if PACKET_DEBUG == 1
+				printf("Total data bytes read: %d\n", inPacketBufSize-1);
+				#endif
+				if(CRCIsValid == true){
+					switch(headerByte){
+						case MODESET:
+							//printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
+							PreviousMode = QuadState;
+							ModeToSet = inPacketBuffer[0];
+							QuadState = SETNEWMODE;
+						case J_CONTROL:
+							//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
+							LRPY[0] = (uint8_t)inPacketBuffer[0];
+							LRPY[1] = (int8_t)inPacketBuffer[1];
+							LRPY[2] = (int8_t)inPacketBuffer[2];
+							LRPY[3] = (int8_t)inPacketBuffer[3];
+							break;
+						case K_LIFT:
+							k_LRPY[0]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_ROLL:
+							k_LRPY[1]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_PITCH:
+							k_LRPY[2]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_YAW:
+							k_LRPY[3]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_P:
+							k_LRPY[4]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_P1:
+							k_LRPY[5]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_P2:
+							k_LRPY[6]+=(int8_t)inPacketBuffer[0];
+							break;
+						case K_HEIGHT:
+							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
+							break;
+						case PING_DATCRC:
+							dat_temp = PING_DATCRC;
+							#if PACKET_DEBUG == 1
+							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
+							#endif
+							break;
+						default:
+							//For now just return the packet
+							printf("Packet: ");
+							printf("0x%02X ", headerByte);
+							for(uint8_t i=0; i<inPacketBufSize; i++){
+								printf("0x%02X ", inPacketBuffer[i]);
+							}
+							printf("\n");
+							break;
+					}
+					
+				}
+				inPacketState = 0;
+				//nrf_delay_ms(100);
+				break;
+			default:
+				inPacketState = 0;
+				break;
+		}
+	}
+}
+
+
 /*----------------------------------------------------------------
  * main -- execute terminal
  * 
