@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include "../in4073.h"
 
 int main(int argc, char *argv[]){
     // Glade and GTK+3 init
