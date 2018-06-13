@@ -26,7 +26,7 @@
 
 #define CONTROLLER 1
 #define BATTERY_CONNECTED 0
-#define NON_ZERO_DEBUG 0
+#define NON_ZERO_DEBUG 1
 #define PACKET_DEBUG 0
 #define LOG_DEBUG 1
 #define MOTOR_VALUES_DEBUG 0

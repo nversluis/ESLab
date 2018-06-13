@@ -14,8 +14,6 @@
 #include "pc_terminal/protocol.h"
 #include <stdlib.h>
 
-bool butter_flag = true;
-uint8_t height_flag =0;
 /*-----------------------------------------------------------------------------------------
 * convert_to_rpm() -	function to convert the raw values of lift, roll, pitch and yaw to
 * 						corresponding rotor rpm values.
@@ -30,7 +28,6 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 	rotor[1] = ((uint32_t)(5*lift) - (10*roll) + (8*yaw));
 	rotor[2] = ((uint32_t)(5*lift) - (10*pitch) - (8*yaw));
 	rotor[3] = ((uint32_t)(5*lift) + (10*roll) + (8*yaw));
-	//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", rotor[0], rotor[1],rotor[2],rotor[3]);
 
 	for(uint8_t i=0; i<4; i++){
 		if(rotor[i] < 0){
@@ -116,43 +113,43 @@ double 	fixmul(int x1, int x2)
 */
 
 void butterworth_filter(){
-	static uint32_t x[3] = {0,0,0}, y[3] = {0,0,0}, gain, b1, b2, a0, a1, a2;
-	if(butter_flag){
-		gain = float2fix(14.82463775);
-		a0 = float2fix(1);
-		a1 = float2fix(2);
-		a2 = float2fix(1);
-		b2 = float2fix(0.4128015981);
-		b1 = float2fix(1.1429805025);
-		y[0] = float2fix(y[0]);
-		y[1] = float2fix(y[1]);
-		for(uint8_t i=0; i<3; i++){
-			x[i] = float2fix(x[i]);
-		}
+
+    static bool butter_flag=true;
+    static int32_t x[3] = {0,0,0}, y[3] = {0,0,0}, filtered_sr, a0, a1, a2, b0, b1;
+    if(butter_flag){
+		//200Hz
+        a0=float2fix(0.0200833656);
+        a1=float2fix(0.0401667312);
+        a2=float2fix(0.0200833656);
+        b0=float2fix(-0.6413515381);
+        b1=float2fix(1.5610180758);
+		//100Hz
+		// a0=float2fix(0.0674552739);
+        // a1=float2fix(0.134910548);
+        // a2=float2fix(0.0674552739);
+        // b0=float2fix(-0.4128015981);
+        // b1=float2fix(1.1429805025);
+        butter_flag=false;
+    }
+	if (check_sensor_int_flag()) 
+	{
+		get_raw_sensor_data();
 	}
-	//if(LRPY[0] > 10 || LRPY[0] < -10){
-		if (check_sensor_int_flag()) 
-		{
-			get_raw_sensor_data();
-		}
-		for(uint8_t i=2; i>0; i--){
-			x[i] = x[i-1];
-			y[i] = y[i-1];
-		}
-		x[0] = float2fix(sr)/gain;
-		y[0] = (fixmul(a0,x[0]) + fixmul(a1,x[1]) + fixmul(a2,x[2]) - fixmul(-b2,y[2]) - fixmul(b1,y[1]));
-		filtered_sr = fix2float(y[0]);
-	//}
-	//else{
-	//	for(uint8_t i=0; i<4; i++){
-	//		ae[i]=0;
-	//	}
-		//printf("sr: %06d filetered: %06ld\n", sr, 10*filtered_sr);
-		uint32_t tdata[2];
-		tdata[0] = (uint32_t)sr;
-		tdata[1] = (uint32_t)filtered_sr;
-		remote_print_data(P_BUTTERWORTH, sizeof(tdata), (uint8_t*)tdata);
-	//}
+	
+    x[0] = x[1];
+    x[1] = x[2];
+    x[2] = sr;
+    y[0] = y[1];
+    y[1] = y[2];
+    filtered_sr = (a0*x[0]) + (a2*x[2]) + (a1*x[1]) + (b0 * y[0]) + (b1 * y[1]);
+    filtered_sr = fix2float(filtered_sr);
+    y[2] = filtered_sr;
+
+	uint32_t tdata[2];
+	tdata[0] = (uint32_t)sr;
+	tdata[1] = (uint32_t)filtered_sr;
+	remote_print_data(P_BUTTERWORTH, sizeof(tdata), (uint8_t*)tdata);
+	
 }
 
 
@@ -339,7 +336,7 @@ void full_control(){
 *------------------------------------------------------------------------------------------
 */
 void height_control(){
-	
+	static uint8_t height_flag=0;
 	static int32_t height_error = 0, adjusted_lift = 0, desired_pressure = 0;
 	int16_t kl = 100;
 	
@@ -583,8 +580,8 @@ void run_control() // 250Hz
 			full_control();
 			break;
 		case RAW:
-			QuadState = PANIC;
-			remote_notify_state(PANIC, INFO);
+			butterworth_filter();
+			//remote_notify_state(PANIC, INFO);
 			break;
 		case HEIGHT:
 			QuadState = PANIC;
@@ -649,7 +646,7 @@ void run_control() // 250Hz
 			}
 
 			// Check Flights only from safe
-			if(ModeToSet == MANUAL || ModeToSet == YAWCONTROL){
+			if(ModeToSet == MANUAL || ModeToSet == YAWCONTROL || ModeToSet == RAW){
 				if(PreviousMode == SAFE){
 					//printf("MANUAL or YAWCONTROL set.\n");
 					remote_notify_state(ModeToSet, ACK);
