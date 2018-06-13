@@ -489,14 +489,35 @@ void process_packet(uint8_t readByte){
 						}
 						break;
 					case PRINT1:
-						printf("Quad: ");
 						switch(inPacketBuffer[0]){
 							case P_LOGSWITCH:
-								printf("Switching flash block to %u\n", inPacketBuffer[1]);
+								#if QUAD_NON_ZERO_DEBUG == 1
+								printf("Quad: Switching flash block to %u\n", inPacketBuffer[1]);
+								#endif
+								break;
+							case P_NONZEROY:
+								#if QUAD_NON_ZERO_DEBUG == 1
+								printf("Quad: Yaw non-zero: %d\n", (int8_t)inPacketBuffer[1]);
+								#endif
+								break;
+							case P_NONZEROP:
+								#if QUAD_NON_ZERO_DEBUG == 1
+								printf("Quad: Pitch non-zero: %d\n", (int8_t)inPacketBuffer[1]);
+								#endif
+								break;
+							case P_NONZEROR:
+								#if QUAD_NON_ZERO_DEBUG == 1
+								printf("Quad: Roll non-zero: %d\n", (int8_t)inPacketBuffer[1]);
+								#endif
+								break;
+							case P_NONZEROL:
+								#if QUAD_NON_ZERO_DEBUG == 1
+								printf("Quad: Lift non-zero: %d\n", (uint8_t)inPacketBuffer[1]);
+								#endif
 								break;
 							case 0x00:
 							default:
-								printf("Generic error with data: 0x%02X.\n", inPacketBuffer[1]);
+								printf("Quad: Generic error with data: 0x%02X.\n", inPacketBuffer[1]);
 								break;
 						}
 						break;
@@ -555,8 +576,8 @@ void process_packet(uint8_t readByte){
 							*/
 							case P_BUTTERWORTH:
 								temp[0] = (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24);
-								temp[1] = (uint32_t)(inPacketBuffer[5] | inPacketBuffer[6] << 8 | inPacketBuffer[7] << 16 | inPacketBuffer[8] << 24)
-								printf("sr: %06d filetered: %06ld\n", (int16_t)temp[0], 10*(int32_t)temp[1]);
+								temp[1] = (uint32_t)(inPacketBuffer[5] | inPacketBuffer[6] << 8 | inPacketBuffer[7] << 16 | inPacketBuffer[8] << 24);
+								printf("sr: %06d filetered: %06d\n", (int16_t)temp[0], 10*(int32_t)temp[1]);
 								break;
 							case 0x00:
 							default:

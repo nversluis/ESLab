@@ -80,6 +80,10 @@ void detect_term_input(char);
 #define P_BATLOW		0x20
 #define P_MOTORDATA		0x21
 #define P_BUTTERWORTH	0x22
+#define P_NONZEROY		0x23
+#define P_NONZEROP		0x24
+#define P_NONZEROR		0x25
+#define P_NONZEROL		0x26
 
 //Mode values 
 #define SAFE            	0x11

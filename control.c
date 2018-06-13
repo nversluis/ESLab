@@ -151,7 +151,7 @@ void butterworth_filter(){
 		uint32_t tdata[2];
 		tdata[0] = (uint32_t)sr;
 		tdata[1] = (uint32_t)filtered_sr;
-		remote_print_data(P_BUTTERWORTH, sizeof(tdata), tdata);
+		remote_print_data(P_BUTTERWORTH, sizeof(tdata), (uint8_t*)tdata);
 	//}
 }
 
@@ -432,22 +432,26 @@ bool near_zero(void){
 					return true;
 				}else{
 					#if NON_ZERO_DEBUG == 1
-					printf("Yaw non-zero: %d\n", (uint8_t)LRPY[3]);
+					remote_print_data(P_NONZEROY, sizeof(uint8_t), (uint8_t*)&LRPY[3]);
+					//printf("Yaw non-zero: %d\n", (int8_t)LRPY[3]);
 					#endif
 				}
 			}else{
 				#if NON_ZERO_DEBUG == 1
-				printf("Pitch non-zero: %d\n", (uint8_t)LRPY[2]);
+				remote_print_data(P_NONZEROP, sizeof(uint8_t), (uint8_t*)&LRPY[2]);
+				//printf("Pitch non-zero: %d\n", (int8_t)LRPY[2]);
 				#endif
 			}
 		}else{
 			#if NON_ZERO_DEBUG == 1
-			printf("Roll non-zero: %d\n", (int8_t)LRPY[1]);
+			remote_print_data(P_NONZEROR, sizeof(uint8_t), (uint8_t*)&LRPY[1]);
+			//printf("Roll non-zero: %d\n", (int8_t)LRPY[1]);
 			#endif
 		}
 	}else{
 		#if NON_ZERO_DEBUG == 1
-		printf("Lift non-zero: %d\n", (uint8_t)LRPY[0]);
+		remote_print_data(P_NONZEROL, sizeof(uint8_t), (uint8_t*)&LRPY[0]);
+		//printf("Lift non-zero: %d\n", (uint8_t)LRPY[0]);
 		#endif
 	}
 	return false;
