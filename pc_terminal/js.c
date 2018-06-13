@@ -117,7 +117,7 @@ void    mon_delay_ms(unsigned int ms)
 void init_js(){
 
 	if ((fd = open(JS_DEV, O_RDONLY)) < 0) {
-		perror("jstest");
+		perror("Joystick Error (probably not connected)");
 		exit(1);
 	}
 

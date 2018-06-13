@@ -38,6 +38,8 @@
 #define USB_TIMEOUT_CYCLES (USB_TIMEOUT_MS/TIMER_PERIOD)
 #define BLINKLED_HZ 5
 #define BLINKLED_CYCLES (500/(TIMER_PERIOD*BLINKLED_HZ))
+#define MOTORDATA_HZ 5
+#define MOTORDATA_CYCLES (500/(TIMER_PERIOD*BLINKLED_HZ))
 
 #define RED			22
 #define YELLOW		24
@@ -58,6 +60,13 @@ bool received_data;
 bool BlinkLed;
 bool USBDisconnected;
 bool demo_done;
+
+// Remote printing
+void remote_print(uint8_t printCase);
+void remote_print_data(uint8_t printCase, uint8_t dataBytes, uint8_t* data);
+void remote_notify_state(uint8_t state, uint8_t answer);
+void send_calibration_data();
+void send_motor_data();
 
 // Control
 int16_t motor[4],ae[4];

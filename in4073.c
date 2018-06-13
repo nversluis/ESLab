@@ -26,6 +26,70 @@ uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
 
+/*------------------------------------------------------------------
+ * respond_to_ping -- send a response to a ping back to computer
+ * Mark Röling
+ *------------------------------------------------------------------
+ */
+void respond_to_ping(){
+    struct packet p_obj;
+	p_obj.header=PING_DATACK;
+	p_obj.data=PING_DATACK;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+	uart_put(p_obj.header);
+	uart_put(p_obj.data);
+	uart_put(p_obj.crc8);
+}
+
+/*------------------------------------------------------------------
+ * send_bat_voltage -- send the battery voltage to computer
+ * Mark Röling
+ *------------------------------------------------------------------
+ */
+void send_bat_voltage(){
+    struct packet p_obj;
+	p_obj.header=BAT;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, (uint8_t*)&bat_volt, sizeof(bat_volt));
+	uart_put(p_obj.header);
+	uart_put((uint8_t)(bat_volt & 0xFF));
+	uart_put((uint8_t)(bat_volt>>8 & 0xFF));
+	uart_put(p_obj.crc8);
+}
+
+/*------------------------------------------------------------------
+ * send_calibration_data -- sends calibration data to comptuer
+ * Mark Röling
+ *------------------------------------------------------------------
+ */
+void send_calibration_data(){
+    struct packet p_obj;
+    int16_t offsets[6] = {phi_o, theta_o, psi_o, sp_o, sq_o, sr_o};
+	p_obj.header=CAL_GET;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, (uint8_t*)&offsets, sizeof(offsets));
+	uart_put(p_obj.header);
+	for(uint8_t i=0; i<6; i++){
+		uart_put((uint8_t)(offsets[i] & 0xFF));
+		uart_put((uint8_t)(offsets[i]>>8 & 0xFF));
+	}
+	uart_put(p_obj.crc8);
+}
+
+/*------------------------------------------------------------------
+ * send_motor_data -- sends motor data to comptuer
+ * Mark Röling
+ *------------------------------------------------------------------
+ */
+void send_motor_data(){
+    struct packet p_obj;
+	p_obj.header=AE_OUT;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, (uint8_t*)&ae, sizeof(ae));
+	uart_put(p_obj.header);
+	for(uint8_t i=0; i<4; i++){
+		uart_put((uint8_t)(ae[i] & 0xFF));
+		uart_put((uint8_t)(ae[i]>>8 & 0xFF));
+	}
+	uart_put(p_obj.crc8);
+}
 
 /*------------------------------------------------------------------
  * process_packet -- process incoming packets
@@ -39,18 +103,22 @@ void process_packet(){
 	uint8_t readByte = 0;
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;
+	#if PACKET_DEBUG == 1
 	uint8_t dat_temp = 0;
+	#endif
 
 
 	if(rx_queue.count > 0){
 		readByte = dequeue(&rx_queue);
 		received_data = true;
 		//printf("Readbyte: 0x%02X, car is 0x%02X\n", readByte, PING);
+		/*
 		if(readByte == PING){
 			uart_put(PING);
 			//printf("Pin received.\n");
 			inPacketState = 0;
 		}
+		*/
 		
 		switch(inPacketState){
 			case 0:
@@ -168,12 +236,14 @@ void process_packet(){
 							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
 							break;
 						case PING_DATCRC:
-							dat_temp = PING_DATCRC;
 							#if PACKET_DEBUG == 1
+							dat_temp = PING_DATCRC;
 							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
 							#endif
+							respond_to_ping();
 							break;
 						default:
+							#if PACKET_DEBUG == 1
 							//For now just return the packet
 							printf("Packet: ");
 							printf("0x%02X ", headerByte);
@@ -181,6 +251,7 @@ void process_packet(){
 								printf("0x%02X ", inPacketBuffer[i]);
 							}
 							printf("\n");
+							#endif
 							break;
 					}
 					
@@ -208,70 +279,99 @@ void process_packet(){
 
 void check_battery(){
 	// adc_request_sample();
+	send_bat_voltage();
 	if((QuadState == SAFE && QuadState == SAFE_NONZERO) && (bat_volt <= 1050)) {
-		printf("Battery Critically low (%d volts)!!\n",bat_volt);
+		remote_print_data(P_BATCRIT, sizeof(bat_volt), (uint8_t*)&bat_volt);
+		//printf("Battery Critically low (%d volts)!!\n",bat_volt);
 		low_battery=true;
 	}
 	else if(bat_volt > 1050 && bat_volt <=1100){
-		printf("Caution!! Battery voltage low!!");
+		remote_print_data(P_BATLOW, sizeof(bat_volt), (uint8_t*)&bat_volt);
+		//printf("Caution!! Battery voltage low!!");
 		low_battery=false;
 	}
 	else if(bat_volt > 1100){
-		printf("Battery voltage %d volts.\n", bat_volt);
+		//printf("Battery voltage %d volts.\n", bat_volt);
 		low_battery=false;
 	}
 	else{
-		printf("Battery critically low(%d volts)!! Pleae change the battery and restart......\n",bat_volt);
+		remote_print_data(P_BATCRIT, sizeof(bat_volt), (uint8_t*)&bat_volt);
+		//printf("Battery critically low(%d volts)!! Pleae change the battery and restart......\n",bat_volt);
 		low_battery=true; 
 		nrf_gpio_pin_toggle(RED);
 		QuadState=PANIC;
 	}
 }
 
-/*------------------------------------------------------------------
- * process_key -- process command keys
- *------------------------------------------------------------------
- */
-void process_key(uint8_t c)
-{
-	switch (c)
-	{
-		case 'q':
-			ae[0] += 10;
+/*-----------------------------------------------------------------------------------------
+* remote_print() -	functions to print a print statement on remote computer terminal
+*
+* Author: Mark Röling
+* Date : 23/05/18
+*------------------------------------------------------------------------------------------
+*/
+
+void remote_print(uint8_t printCase){
+    struct packet p_obj;
+	p_obj.header=PRINT;
+	p_obj.data=printCase;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+	uart_put(p_obj.header);
+	uart_put(p_obj.data);
+	uart_put(p_obj.crc8);
+}
+void remote_print_data(uint8_t printCase, uint8_t dataBytes, uint8_t* data){
+	uint8_t datat[5];
+	uint8_t header = 0x00;
+	//printf("\nP");
+    switch(dataBytes){
+    	case 1:
+    		//printf("1");
+			header = PRINT1;
 			break;
-		case 'a':
-			ae[0] -= 10;
-			if (ae[0] < 0) ae[0] = 0;
+    	case 2:
+    		//printf("2");
+			header = PRINT2;
 			break;
-		case 'w':
-			ae[1] += 10;
-			break;
-		case 's':
-			ae[1] -= 10;
-			if (ae[1] < 0) ae[1] = 0;
-			break;
-		case 'e':
-			ae[2] += 10;
-			break;
-		case 'd':
-			ae[2] -= 10;
-			if (ae[2] < 0) ae[2] = 0;
-			break;
-		case 'r':
-			ae[3] += 10;
-			break;
-		case 'f':
-			ae[3] -= 10;
-			if (ae[3] < 0) ae[3] = 0;
-			break;
-		case 27:
-			demo_done = true;
+   		case 4:
+   			//printf("4");
+			header = PRINT4;
 			break;
 		default:
-			nrf_gpio_pin_toggle(RED);
-	}
-}
+			// Size isn´t supported yet. Maybe throw some form of error?
+			return;
+			break;
+    }
+    
+    datat[0] = printCase;
+    //printf(": 0x%02X ", datat[0]);
+    for(uint8_t i=0; i<dataBytes; i++){
+    	datat[i+1] = data[i];
+    	//printf("0x%02X ", datat[i+1]);
+    }
 
+	uint8_t crc = make_crc8_tabled(header, datat, dataBytes+1);
+	//printf("CRC: 0x%02X.\n", crc);
+	//nrf_delay_ms(1000);
+	uart_put(header);
+	for(uint8_t i=0; i<dataBytes+1; i++){
+		uart_put(datat[i]);
+	}
+	uart_put(crc);
+}
+void remote_notify_state(uint8_t state, uint8_t answer){
+    struct packet p_obj;
+    if(answer == ACK){
+		p_obj.header=MODESET;
+	}else{
+		p_obj.header=MODEGET;
+	}
+	p_obj.data=state;
+	p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+	uart_put(p_obj.header);
+	uart_put(p_obj.data);
+	uart_put(p_obj.crc8);
+}
 
 /*------------------------------------------------------------------
  * main -- everything you need is here :)
@@ -292,9 +392,9 @@ int main(void)
 	baro_init();
 	spi_flash_init();
 	adc_request_sample();
-	//nrf_delay_ms(2000); // Wait 2 seconds for the chip erase to finish
 	//ble_init();
 	log_init();
+	nrf_delay_ms(1100); // Wait 1100ms for the computer program to start reading data.
 
 	uint32_t counter = 0;
 	demo_done = false;
@@ -302,8 +402,13 @@ int main(void)
 	if (BATTERY_CONNECTED){
 		check_battery();
 	}
-	printf("BLINKLED_CYCLES: %u, USB_TIMEOUT_CYCLES: %u, USB_TIMEOUT_MS: %u, KEEP_ALIVE_TIMEOUT_MS: %u.\n", BLINKLED_CYCLES, USB_TIMEOUT_CYCLES, USB_TIMEOUT_MS, KEEP_ALIVE_TIMEOUT_MS);
-	printf("Entering main loop...\n");
+	//printf("BLINKLED_CYCLES: %u, USB_TIMEOUT_CYCLES: %u, USB_TIMEOUT_MS: %u, KEEP_ALIVE_TIMEOUT_MS: %u.\n", BLINKLED_CYCLES, USB_TIMEOUT_CYCLES, USB_TIMEOUT_MS, KEEP_ALIVE_TIMEOUT_MS);
+
+	//printf("Entering main loop...\n");
+	remote_print(P_MAINLOOP);
+	//uint32_t testvar = 0x01020304;
+	//remote_print_data(P_TEST4, sizeof(testvar), (uint8_t*)&testvar);
+
 	while (!demo_done && !low_battery)
 	{
 		// if(rx_queue.count > 0){
@@ -315,7 +420,6 @@ int main(void)
 		// }
 
 		process_packet();
-//		if (rx_queue.count) process_key( dequeue(&rx_queue) );
 
  		if (check_timer_flag()) 
 		{
@@ -355,6 +459,11 @@ int main(void)
 				}
 			}
 
+			// Send motor data -- Mark Röling
+			if(counter%(MOTORDATA_CYCLES) == 10){
+				send_motor_data();
+			}
+
 			// Blink led -- Mark Röling
 			if(BlinkLed && counter%(BLINKLED_CYCLES) == 0){
 				nrf_gpio_pin_toggle(BLUE);
@@ -383,7 +492,8 @@ int main(void)
 		
 	}	
 
-	printf("\n\t Goodbye \n\n");
+	remote_print(P_GOODBYE);
+	//printf("\n\t Goodbye \n\n");
 	nrf_delay_ms(100);
 
 	NVIC_SystemReset();

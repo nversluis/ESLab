@@ -453,6 +453,7 @@ void run_control() // 250Hz
 {
 	static uint16_t panic_counter = 0;
 	uint32_t cur_time = 0;
+	uint8_t datat[2];
 
 	switch(QuadState){
 		case SAFE:
@@ -462,7 +463,8 @@ void run_control() // 250Hz
 			ae[2] = 0;
 			ae[3] = 0;
 			if(!near_zero()){ //inputs are not near 0
-				printf("Safe mode, non-zero.\n");
+				//printf("Safe mode, non-zero.\n");
+				remote_notify_state(SAFE_NONZERO, INFO);
 				QuadState = SAFE_NONZERO;
 			}else{
 				break;
@@ -475,7 +477,8 @@ void run_control() // 250Hz
 			ae[3] = 0;
 			//move to state safe if inputs are near 0
 			if(near_zero()){ //inputs are within safe margin of 0
-				printf("Safe mode, zero.\n");
+				//printf("Safe mode, zero.\n");
+				remote_notify_state(SAFE, INFO);
 				QuadState = SAFE;
 			}
 			break;
@@ -487,12 +490,14 @@ void run_control() // 250Hz
 			ae[3] = 0;
 			if(USBDisconnected == false){
 				QuadState = SAFE_NONZERO;
-				printf("Initiate SAFE_NONZERO mode.\n");
+				//printf("Initiate SAFE_NONZERO mode.\n");
+				remote_notify_state(SAFE_NONZERO, INFO);
 			}
 			break;
 		case PANIC:
-			printf("Initiate PANIC mode.\n");
-			//initiate PANIC mode
+			//printf("Initiate PANIC mode.\n");
+			remote_notify_state(PANIC, INFO);
+
 			panic_counter = 1005;
 			QuadState = PANIC_COUNTDOWN;
 		case PANIC_COUNTDOWN:
@@ -505,10 +510,12 @@ void run_control() // 250Hz
 			}else{
 				if(USBDisconnected == false){
 					QuadState = SAFE_NONZERO;
-					printf("Initiate SAFE_NONZERO mode.\n");
+					remote_notify_state(SAFE_NONZERO, INFO);
+					//printf("Initiate SAFE_NONZERO mode.\n");
 				}else{
 					QuadState = SAFE_DISCONNECTED;
-					printf("Initiate SAFE_DISCONNECTED mode.\n");
+					remote_notify_state(SAFE_DISCONNECTED, INFO);
+					//printf("Initiate SAFE_DISCONNECTED mode.\n");
 				}
 			}
 			break;
@@ -519,11 +526,14 @@ void run_control() // 250Hz
 			}
 			convert_to_rpm((uint16_t)LRPY16[0],LRPY16[1], LRPY16[2], LRPY16[3]);
 			#if MOTOR_VALUES_DEBUG == 1
-			printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
+			void send_motor_data();
+			//remote_print_data(P_MOTORDATA, sizeof(ae), ae);
+			//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 			#endif
 			break;
 		case CALIBRATION_ENTER:
-			printf("Initiate CALIBRATION mode.\n");
+			//printf("Initiate CALIBRATION mode.\n");
+			
 			CalibrationStartTime = get_time_us();
 			phi_o = phi;
 			theta_o = theta;
@@ -532,6 +542,7 @@ void run_control() // 250Hz
 			sq_o = sq;
 			sr_o = sr;
 			QuadState = CALIBRATION;
+			remote_notify_state(CALIBRATION, INFO);
 		case CALIBRATION:
 			cur_time = get_time_us();
 			if(cur_time < CalibrationStartTime + CALIBRATION_TIME_US){
@@ -542,8 +553,10 @@ void run_control() // 250Hz
 				sq_o -= ((sq_o - sq) >> 2);
 				sr_o -= ((sr_o - sr) >> 2);
 			}else{
-				printf("Calibration done. Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", phi_o, theta_o, psi_o, sp_o, sq_o, sr_o);
+				send_calibration_data();
+				//printf("Calibration done. Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", phi_o, theta_o, psi_o, sp_o, sq_o, sr_o);
 				QuadState = PANIC;
+				remote_notify_state(PANIC, INFO);
 			}
 			break;
 		case YAWCONTROL:
@@ -554,18 +567,25 @@ void run_control() // 250Hz
 			break;
 		case RAW:
 			QuadState = PANIC;
+			remote_notify_state(PANIC, INFO);
 			break;
 		case HEIGHT:
 			QuadState = PANIC;
+			remote_notify_state(PANIC, INFO);
 			break;
 		case WIRELESS:
 			QuadState = PANIC;
+			remote_notify_state(PANIC, INFO);
 			break;
 		case DUMPLOGS:
 			log_dump();
 			QuadState = SAFE;
+			remote_notify_state(SAFE, INFO);
 			break;
 		case SETNEWMODE:
+			datat[0] = PreviousMode;
+			datat[1] = ModeToSet;
+			remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
 			// Do nothing if we want the same mode again.
 			if(PreviousMode == ModeToSet){
 				QuadState = PreviousMode;
@@ -582,22 +602,26 @@ void run_control() // 250Hz
 			// Check full to heigth and vice-versa
 			if(ModeToSet == FULLCONTROL){
 				if(PreviousMode == HEIGHT || PreviousMode == SAFE){
-					printf("FULLCONTROL set.\n");
+					//printf("FULLCONTROL set.\n");
 					QuadState = ModeToSet;
+					remote_notify_state(ModeToSet, ACK);
 					break;
 				}else{
-					printf("Cannot change flight modes, you're not in SAFE mode.\n");
+					remote_print(P_CHANGENOTSAFE);
+					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
 				}
 			}
 			if(ModeToSet == HEIGHT){
 				if(PreviousMode == FULLCONTROL || PreviousMode == SAFE){
-					printf("HEIGHT set.\n");
+					//printf("HEIGHT set.\n");
+					remote_notify_state(ModeToSet, ACK);
 					QuadState = ModeToSet;
 					break;
 				}else{
-					printf("Cannot change flight modes, you're not in SAFE mode.\n");
+					remote_print(P_CHANGENOTSAFE);
+					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
 				}
@@ -606,11 +630,13 @@ void run_control() // 250Hz
 			// Check Flights only from safe
 			if(ModeToSet == MANUAL || ModeToSet == YAWCONTROL){
 				if(PreviousMode == SAFE){
-					printf("MANUAL or YAWCONTROL set.\n");
+					//printf("MANUAL or YAWCONTROL set.\n");
+					remote_notify_state(ModeToSet, ACK);
 					QuadState = ModeToSet;
 					break;
 				}else{
-					printf("Cannot change flight modes, you're not in SAFE mode.\n");
+					remote_print(P_CHANGENOTSAFE);
+					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
 				}
@@ -621,20 +647,24 @@ void run_control() // 250Hz
 				if(PreviousMode == SAFE || PreviousMode == SAFE_NONZERO){
 					QuadState = ModeToSet;
 					if(ModeToSet == CALIBRATION){
-						printf("CALIBRATION mode set.\n");
+						remote_notify_state(CALIBRATION_ENTER, ACK);
+						//printf("CALIBRATION mode set.\n");
 						QuadState = CALIBRATION_ENTER;
 					}else{
-						printf("DUMPLOGS mode set.\n");
+						remote_notify_state(ModeToSet, ACK);
+						//printf("DUMPLOGS mode set.\n");
 					}
 					break;
 				}else{
-					printf("Cannot change to logs/calibration modes, you're not in SAFE mode.\n");
+					remote_print(P_CALNOTSAFE);
+					//printf("Cannot change to logs/calibration modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
 				}
 			}
 
 			// Something went wrong
+			remote_notify_state(PANIC, ACK);
 			QuadState = PANIC;
 			break;
 		default:

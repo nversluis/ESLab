@@ -184,171 +184,368 @@ int 	rs232_putchar(char c)
 
 
 /*----------------------------------------------------------------
+ * printMode -- prints the relevant mode to terminal
+ * 
+ * Mods: Mark Röling
+ * Date: 07/06/18
+ *----------------------------------------------------------------
+ */
+void printMode(uint8_t mode){
+	switch(mode){
+		case SAFE:
+			printf("SAFE");
+			break;
+		case SAFE_NONZERO:
+			printf("SAFE_NONZERO");
+			break;
+		case SAFE_DISCONNECTED:
+			printf("SAFE_DISCONNECTED");
+			break;
+		case PANIC:
+			printf("PANIC");
+			break;
+		case PANIC_COUNTDOWN:
+			printf("PANIC_COUNTDOWN");
+			break;
+		case MANUAL:
+			printf("MANUAL");
+			break;
+		case CALIBRATION:
+			printf("CALIBRATION");
+			break;
+		case CALIBRATION_ENTER:
+			printf("CALIBRATION_ENTER");
+			break;
+		case YAWCONTROL:
+			printf("YAWCONTROL");
+			break;
+		case FULLCONTROL:
+			printf("FULLCONTROL");
+			break;
+		case RAW:
+			printf("RAW");
+			break;
+		case HEIGHT:
+			printf("HEIGHT");
+			break;
+		case WIRELESS:
+			printf("WIRELESS");
+			break;
+		case DUMPLOGS:
+			printf("DUMPLOGS");
+			break;
+		case SETNEWMODE:
+			printf("SETNEWMODE");
+			break;
+		default:
+			printf("Unknown: 0x%02X", mode);
+			break;
+	}
+}
+
+
+/*----------------------------------------------------------------
  * process_packet -- the computer side state machine
  * 
  * Mods: Mark Röling
  * Date: 07/06/18
  *----------------------------------------------------------------
  */
+#define MAX_PACKET_SIZE 10
+uint8_t inPacketState = 0;
+uint8_t headerByte = 0x00;
+uint8_t totalBytesToRead = 0;
+uint8_t inPacketBuffer[MAX_PACKET_SIZE];
+uint8_t inPacketBufSize = 0;
+#define PACKET_DEBUG 0
 
-void process_packet(){
+void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
-	uint8_t readByte = 0;
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;
-	uint8_t dat_temp = 0;
+	int16_t aet[4];
+	int16_t offsetst[6];
 
+	#if PACKET_DEBUG == 1
+	printf("Comp: Readbyte: 0x%02X\n", readByte);
+	#endif
+	if(readByte == PING){
+		//uart_put(PING);
+		printf("Quad Ack: Ping.\n");
+		inPacketState = 0;
+	}
+	
+	switch(inPacketState){
+		case 0:
+			if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC || readByte == PRINT){
+				// 1 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 2;
+				headerFound = true;
+			}
+			else if(readByte == BAT || readByte == PRINT1){
+				// 2 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 3;
+				headerFound = true;
+			}
+			else if(readByte == PRINT2){
+				// 3 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 4;
+				headerFound = true;
+			}
+			else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
+				// 4 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 5;
+				headerFound = true;
+			}
+			else if(readByte == PRINT4){
+				// 5 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 6;
+				headerFound = true;
+			}
+			else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
+				// 8 Byte packets
+				headerByte = readByte;
+				totalBytesToRead = 9;
+				headerFound = true;
+			}
 
-	if(rx_queue.count > 0){
-		readByte = dequeue(&rx_queue);
-		received_data = true;
-		//printf("Readbyte: 0x%02X, car is 0x%02X\n", readByte, PING);
-		if(readByte == PING){
-			uart_put(PING);
-			//printf("Pin received.\n");
-			inPacketState = 0;
-		}
-		
-		switch(inPacketState){
-			case 0:
-				// if(readByte == PING){
-				// 	uart_put(PING);
-				// 	//printf("Pin received.\n");
-				// 	inPacketState = 0;
-				// 	break;
-				// }
-				// Check if it's a header byte
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC){
-					// 1 Byte packets
-					headerByte = readByte;
-					totalBytesToRead = 2;
-					headerFound = true;
-				}
-				else if(readByte == BAT){
-					// 2 Byte packets
-					headerByte = readByte;
-					totalBytesToRead = 3;
-					headerFound = true;
-				}
-				else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
-					// 4 Byte packets
-					headerByte = readByte;
-					totalBytesToRead = 5;
-					headerFound = true;
-				}
-				else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
-					// 8 Byte packets
-					headerByte = readByte;
-					totalBytesToRead = 9;
-					headerFound = true;
-				}
-
-				if(headerFound == true){
-					inPacketBufSize = 0;
-					inPacketState = 1;
-					#if PACKET_DEBUG == 1
-					printf("Header byte found: 0x%02X\n", headerByte);
-					#endif
-				}else{
-					#if PACKET_DEBUG == 1
-					printf("Non-header found:  0x%02X\n", readByte);
-					#endif
-				}
-				break;
-			case 1:
-				inPacketBuffer[inPacketBufSize++] = readByte;
-				
-				if(inPacketBufSize >= totalBytesToRead){
-					inPacketState = 2;
-					#if PACKET_DEBUG == 1
-					printf("CRC byte found:    0x%02X ", readByte);
-					#endif
-				}else{
-					#if PACKET_DEBUG == 1
-					printf("Data byte found:   0x%02X\n", readByte);
-					#endif
-					break;
-				}
-			case 2:
-				//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
-				crc_calc = make_crc8_tabled(headerByte, (uint8_t*)inPacketBuffer, inPacketBufSize-1);
-				if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
-					CRCIsValid = true;
-					#if PACKET_DEBUG == 1
-					printf("- Valid.\n");
-					#endif
-				}else{
-					CRCIsValid = false;
-					#if PACKET_DEBUG == 1
-					printf("- Invalid! Calculated CRC %02X, but got %02X\n", crc_calc, inPacketBuffer[inPacketBufSize-1]);
-					#endif
-				}
+			if(headerFound == true){
+				inPacketBufSize = 0;
+				inPacketState = 1;
 				#if PACKET_DEBUG == 1
-				printf("Total data bytes read: %d\n", inPacketBufSize-1);
+				printf("Comp: Header byte found: 0x%02X\n", headerByte);
 				#endif
-				if(CRCIsValid == true){
-					switch(headerByte){
-						case MODESET:
-							//printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
-							PreviousMode = QuadState;
-							ModeToSet = inPacketBuffer[0];
-							QuadState = SETNEWMODE;
-						case J_CONTROL:
-							//printf("Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
-							LRPY[0] = (uint8_t)inPacketBuffer[0];
-							LRPY[1] = (int8_t)inPacketBuffer[1];
-							LRPY[2] = (int8_t)inPacketBuffer[2];
-							LRPY[3] = (int8_t)inPacketBuffer[3];
-							break;
-						case K_LIFT:
-							k_LRPY[0]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_ROLL:
-							k_LRPY[1]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_PITCH:
-							k_LRPY[2]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_YAW:
-							k_LRPY[3]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_P:
-							k_LRPY[4]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_P1:
-							k_LRPY[5]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_P2:
-							k_LRPY[6]+=(int8_t)inPacketBuffer[0];
-							break;
-						case K_HEIGHT:
-							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
-							break;
-						case PING_DATCRC:
-							dat_temp = PING_DATCRC;
-							#if PACKET_DEBUG == 1
-							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
-							#endif
-							break;
-						default:
-							//For now just return the packet
-							printf("Packet: ");
-							printf("0x%02X ", headerByte);
-							for(uint8_t i=0; i<inPacketBufSize; i++){
-								printf("0x%02X ", inPacketBuffer[i]);
-							}
-							printf("\n");
-							break;
-					}
-					
+			}else{
+				#if PACKET_DEBUG == 1
+				printf("Comp: Non-header found:  0x%02X\n", readByte);
+				#endif
+			}
+			break;
+		case 1:
+			inPacketBuffer[inPacketBufSize++] = readByte;
+			
+			if(inPacketBufSize >= totalBytesToRead){
+				inPacketState = 2;
+				#if PACKET_DEBUG == 1
+				printf("Comp: CRC byte found:    0x%02X ", readByte);
+				#endif
+			}else{
+				#if PACKET_DEBUG == 1
+				printf("Comp: Data byte found:   0x%02X\n", readByte);
+				#endif
+				break;
+			}
+		case 2:
+			//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
+			crc_calc = make_crc8_tabled(headerByte, (uint8_t*)inPacketBuffer, inPacketBufSize-1);
+			if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
+				CRCIsValid = true;
+				#if PACKET_DEBUG == 1
+				printf("- Valid.\n");
+				#endif
+			}else{
+				CRCIsValid = false;
+				#if PACKET_DEBUG == 1
+				printf("- Invalid! Calculated CRC %02X, but got %02X\n", crc_calc, inPacketBuffer[inPacketBufSize-1]);
+				#endif
+			}
+			#if PACKET_DEBUG == 1
+			printf("Comp: Total data bytes read: %d\n", inPacketBufSize-1);
+			#endif
+			if(CRCIsValid == true){
+				switch(headerByte){
+					case MODESET:
+						printf("Quad Ack: Modeset: ");
+						printMode(inPacketBuffer[0]);
+						printf("\n");
+					case MODEGET:
+						printf("Quad: Modeget: ");
+						printMode(inPacketBuffer[0]);
+						printf("\n");
+						break;
+					case BAT:
+						printf("Quad: Battery voltage: %u volts.\n", (uint16_t)(inPacketBuffer[0] | inPacketBuffer[1] << 8));
+						break;
+					case CAL_GET:
+						for(uint8_t i=0; i<6; i++){
+							offsetst[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
+						}
+						printf("Quad: Calibration Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", offsetst[0], offsetst[1], offsetst[2], offsetst[3], offsetst[4], offsetst[5]);
+						break;
+					case AE_OUT:
+						for(uint8_t i=0; i<4; i++){
+							aet[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
+						}
+						printf("Quad: ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", aet[0],aet[1],aet[2],aet[3]);
+					case J_CONTROL:
+						printf("Quad Ack: Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
+						break;
+					case K_LIFT:
+						printf("Quad Ack: k_LRPY[0]: 0x%02X\n", (int8_t)inPacketBuffer[0]);
+						break;
+					case K_ROLL:
+						printf("Quad Ack: k_LRPY[1]: 0x%02X\n", (int8_t)inPacketBuffer[1]);
+						break;
+					case K_PITCH:
+						printf("Quad Ack: k_LRPY[2]: 0x%02X\n", (int8_t)inPacketBuffer[2]);
+						break;
+					case K_YAW:
+						printf("Quad Ack: k_LRPY[3]: 0x%02X\n", (int8_t)inPacketBuffer[3]);
+						break;
+					case K_P:
+						printf("Quad Ack: k_LRPY[4]: 0x%02X\n", (int8_t)inPacketBuffer[4]);
+						break;
+					case K_P1:
+						printf("Quad Ack: k_LRPY[5]: 0x%02X\n", (int8_t)inPacketBuffer[5]);
+						break;
+					case K_P2:
+						printf("Quad Ack: k_LRPY[6]: 0x%02X\n", (int8_t)inPacketBuffer[6]);
+						break;
+					case K_HEIGHT:
+						printf("Quad Ack: k_LRPY[7]: 0x%02X\n", (int8_t)inPacketBuffer[7]);
+						break;
+					case PING_DATCRC:
+						printf("Quad: Pingdata? It's not supposed to send this to the computer...\n");
+						break;
+					case PING_DATACK:
+						printf("Quad Ack: Pingdata.\n");
+						break;
+					case PRINT:
+						printf("Quad: ");
+						switch(inPacketBuffer[0]){
+							case P_MAINLOOP:
+								printf("Entering main loop...\n");
+								break;
+							case P_CHANGENOTSAFE:
+								printf("Cannot change flight modes, you're not in SAFE mode.\n");
+								break;
+							case P_CALNOTSAFE:
+								printf("Cannot change to logs/calibration modes, you're not in SAFE mode.\n");
+								break;
+							case P_LOGOVERFLOW:
+								printf("WARNING: Flash overflow detected: old data will be erased!\n");
+								break;
+							case P_LOGERASEFAIL:
+								printf("ERROR: 4k Sector erase failed.\n");
+								break;
+							case P_LOGABORT:
+								printf("ERROR: Logging aborted!\n");
+								break;
+							case P_LOGDUMPABORT:
+								printf("ERROR: Log dump aborted early.\n");
+								break;
+							case P_LOGSPIFAIL:
+								printf("ERROR: SPI Flash initialization failed\n");
+								break;
+							case P_LOGFLASHINIT:
+								printf("ERROR: Flash not initalized yet!");
+								break;
+							case P_LOGFLASHWRITE:
+								printf("ERROR: Flash write failed\n");
+								break;
+							case P_LOGNOTINIT:
+								printf("ERROR: Log not initialized\n");
+								break;
+							case P_LOGEMPTYSPACE:
+								printf("INFO: Empty flash space found.\n");
+								break;
+							case P_GOODBYE:
+								printf("Goodbye.\n");
+								break;
+							case 0x00:
+							default:
+								printf("Generic error.\n");
+								break;
+						}
+						break;
+					case PRINT1:
+						printf("Quad: ");
+						switch(inPacketBuffer[0]){
+							case P_LOGSWITCH:
+								printf("Switching flash block to %u\n", inPacketBuffer[1]);
+								break;
+							case 0x00:
+							default:
+								printf("Generic error with data: 0x%02X.\n", inPacketBuffer[1]);
+								break;
+						}
+						break;
+					case PRINT2:
+						printf("Quad: ");
+						switch(inPacketBuffer[0]){
+							case P_NEWMODEINFO:
+								printf("SETNEWMODE: previousmode: ");
+								printMode(inPacketBuffer[1]);
+								printf(", modetoset: ");
+								printMode(inPacketBuffer[2]);
+								printf(".\n");
+								break;
+							case P_BATCRIT:
+								printf("Battery Critically low (%u volts)!\n", (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8));
+								break;
+							case P_BATLOW:
+								printf("Battery low (%u volts)!\n", (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8));
+								break;
+							case 0x00:
+							default:
+								printf("Generic error with data: 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2]);
+								break;
+						}
+						break;
+					case PRINT4:
+						printf("Quad: ");
+						switch(inPacketBuffer[0]){
+							case P_LOGBOUNDSERR:
+								printf("ERROR: Address(0x%08X) + log size out of bounds\n", (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24));
+								break;
+							case P_TEST4:
+								printf("Test variable: 0x%08X.\n", (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24));
+								break;
+							case P_LOGENTRY:
+								printf("Entry(0x%08X).\n", (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24));
+							case 0x00:
+							default:
+								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4]);
+								break;
+						}
+						break;
+					case PRINT8:
+						printf("Quad: ");
+						switch(inPacketBuffer[0]){
+							case P_MOTORDATA:
+								for(uint8_t i=0; i<4; i++){
+									aet[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
+								}
+								printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", aet[0],aet[1],aet[2],aet[3]);
+								break;
+							case 0x00:
+							default:
+								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4], inPacketBuffer[5], inPacketBuffer[6], inPacketBuffer[7], inPacketBuffer[8]);
+								break;
+						}
+						break;
+					default:
+						//For now just return the packet
+						printf("Received Uprocessed Packet: ");
+						printf("0x%02X ", headerByte);
+						for(uint8_t i=0; i<inPacketBufSize; i++){
+							printf("0x%02X ", inPacketBuffer[i]);
+						}
+						printf("\n");
+						break;
 				}
-				inPacketState = 0;
-				//nrf_delay_ms(100);
-				break;
-			default:
-				inPacketState = 0;
-				break;
-		}
+				
+			}
+			inPacketState = 0;
+			break;
+		default:
+			inPacketState = 0;
+			break;
 	}
 }
 
@@ -370,8 +567,8 @@ int main(int argc, char **argv)
 	char	c;
 	char c2;
 	time_t start_time, end_time, keep_alive_previous, keep_alive_current;
-	struct timeb start, end, delta;
-    int diff, diffd;
+
+    
 
 	term_puts("\nTerminal program - Embedded Real-Time Systems\n");
 	
@@ -386,17 +583,21 @@ int main(int argc, char **argv)
 	sleep(1);
 	while ((c = rs232_getchar_nb()) != -1)
 		fputc(c,stderr);
-	
-	
+
+
+
 	ftime(&time_buffer);
 	start_time=time_buffer.time*1000 + time_buffer.millitm;
 	end_time = start_time;
 	keep_alive_previous = start_time;
 	keep_alive_current = start_time;
+	term_puts("Comp: Ready.\n");
 	
+
 
 	// Joystick timing test.
     /*
+    struct timeb start, end, delta;
     int i = 0;
     ftime(&start);
 
@@ -406,14 +607,15 @@ int main(int argc, char **argv)
 
     ftime(&end);
     diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
-    printf("\nJoystick operations took %u milliseconds\n", diff);
+    printf("\nComputer: Joystick operations took %u milliseconds\n", diff);
     */
 
 
  //    //Ping timing test.
+ //    struct timeb start, end, delta;
  //    sleep(2);
  //    bool response_found = false;
- //    printf("Start pings.\n");
+ //    printf("Computer: Start pings.\n");
  //    ftime(&start);
  //    uint32_t i = 0;
  //    for(i=0; i<1000; i++){
@@ -429,15 +631,16 @@ int main(int argc, char **argv)
 	// 	response_found = false;
 	// }
 	// ftime(&end);
-	// printf("End pings.\n");
- //    diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
- //    printf("\n%d pings took %u milliseconds. Milliseconds per ping: %.2f\n", i, diff, (float)((float)diff/i));
+	// printf("Computer: End pings.\n");
+ //    int diff = (int) (1000.0 * (end.time - start.time) + (end.millitm - start.millitm));
+ //    printf("\nComputer: %d pings took %u milliseconds. Milliseconds per ping: %.2f\n", i, diff, (float)((float)diff/i));
     
 
 	// Ping test with data and CRC.
 	/*
+	struct timeb start, end, delta;
 	uint8_t data_temp[8];
-	printf("Start ping with data.\n");
+	printf("Computer: Start ping with data.\n");
 	struct packet p_obj;
 	p_obj.header=PING_DATCRC;
 	p_obj.data=PING_DATCRC;
@@ -452,7 +655,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	printf("End ping with data.\n");
+	term_puts("Computer: End ping with data.\n");
 	*/
 
 
@@ -471,7 +674,7 @@ int main(int argc, char **argv)
 				if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
 					if((c2 = term_getchar_nb()) == -1){
 						panic_now();
-						printf("Escape found.\n");
+						term_puts("Comp: Escape found.\n");
 						sleep(1);
 						break;
 					}
@@ -494,10 +697,11 @@ int main(int argc, char **argv)
 
 					// TODO: maybe integrate no-ping response message?
 				}
-				//printf("Nothing should be found really...\n");
+				//term_puts("Nothing should be found really...\n");
 			}
 
 			if ((c = rs232_getchar_nb()) != -1){
+				process_packet(c);
 				term_putchar(c);
 			}
 			

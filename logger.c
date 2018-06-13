@@ -33,7 +33,8 @@ bool log_init(){
         log_init_done = true;
         return log_init_done;
     } else {
-        printf("ERROR: SPI Flash initialization failed\n");
+        remote_print(P_LOGSPIFAIL);
+        //printf("ERROR: SPI Flash initialization failed\n");
         return false;
     }
 }
@@ -42,12 +43,15 @@ bool log_init(){
 // Returns true on success, false on failure
 bool log_write(uint32_t addr){
     if(!log_init_done){
-        printf("ERROR: Flash not initalized yet!");
+        remote_print(P_LOGFLASHINIT);
+        //printf("ERROR: Flash not initalized yet!");
         return false;
     }
     // If address out of bounds
     if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
-        printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
+        // I don't feel like porting the actual addresses of this print right now, but if nessecary we could.
+        remote_print_data(P_LOGBOUNDSERR, sizeof(addr), (uint8_t*)&addr);
+        //printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
     } else {
         //Construct log array
@@ -92,6 +96,7 @@ bool log_write(uint32_t addr){
         array[25] = bat_volt & 0xFF;
         array[26] = (bat_volt >> 8) & 0xFF;
 
+        /*
         #if LOG_WRITE_DEBUG
         printf("Log Written: ");
         for(uint8_t i=0; i<LOG_ENTRY_SIZE_BYTES; i++){
@@ -99,11 +104,13 @@ bool log_write(uint32_t addr){
         }
         printf("\n");
         #endif
+        */
 
         if(flash_write_bytes(addr, array, LOG_ENTRY_SIZE_BYTES)){
             return true;
         } else {
-            printf("ERROR: Flash write failed\n");
+            remote_print(P_LOGFLASHWRITE);
+            //printf("ERROR: Flash write failed\n");
             return false;
         }
     }
@@ -114,11 +121,13 @@ bool log_write(uint32_t addr){
 // Returns true on success, false on failure
 bool log_read_entry(uint32_t addr){
     if(!log_init_done){
-        printf("ERROR: Log not initialized\n");
+        remote_print(P_LOGNOTINIT);
+        //printf("ERROR: Log not initialized\n");
         return false;
     }
     if(addr + LOG_ENTRY_SIZE_BYTES > FLASH_ADDR_LIMIT){
-        printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
+        remote_print_data(P_LOGBOUNDSERR, sizeof(addr), (uint8_t*)&addr);
+        //printf("ERROR: Address(%lx) + log size(%x) out of bounds(%x)\n", addr, LOG_ENTRY_SIZE_BYTES, FLASH_ADDR_LIMIT);
         return false;
     }
     // Create data buffer
@@ -126,7 +135,8 @@ bool log_read_entry(uint32_t addr){
     flash_read_bytes(addr, data_buf, LOG_ENTRY_SIZE_BYTES);
 
     #if LOG_READ_DEBUG
-    printf("Entry(%lx): ", addr);
+    remote_print_data(P_LOGENTRY, sizeof(addr), (uint8_t*)&addr);
+    //printf("Entry(%lx): ", addr);
     #endif
 
     // Check for valid data
@@ -137,7 +147,8 @@ bool log_read_entry(uint32_t addr){
         }
     }
     if(counter == LOG_ENTRY_SIZE_BYTES){
-        printf("INFO: Empty flash space found.\n");
+        remote_print(P_LOGEMPTYSPACE);
+        //printf("INFO: Empty flash space found.\n");
         return false;
     }
 
@@ -167,7 +178,7 @@ bool log_read_entry(uint32_t addr){
 
 // Dump all log entries to PC
 void log_dump(){
-    printf("INFO: Log dump started.\n");
+    //printf("INFO: Log dump started.\n");
     // Send log start packet
     uart_put(LOG_START);
     // Iterate starting from last address that contains data
@@ -175,7 +186,8 @@ void log_dump(){
     // Normal readout
     while(i >= 0){
         if(!log_read_entry(i)){
-            printf("ERROR: Log dump aborted early.\n");
+            remote_print(P_LOGDUMPABORT);
+            //printf("ERROR: Log dump aborted early.\n");
             flash_overflow = false;
             break;
         } else {
@@ -190,7 +202,8 @@ void log_dump(){
         // Read down to lower address limit
         while(i > lower_addr_limit){
             if(!log_read_entry(i)){
-                printf("ERROR: Log dump aborted early.\n");
+                remote_print(P_LOGDUMPABORT);
+                //printf("ERROR: Log dump aborted early.\n");
                 break;
             } else {
                 i -= LOG_ENTRY_SIZE_BYTES;
@@ -199,7 +212,7 @@ void log_dump(){
     }
     // Send log end packet
     uart_put(LOG_END);
-    printf("INFO: Log dump complete.\n");
+    //printf("INFO: Log dump complete.\n");
     return;
 }
 
@@ -220,7 +233,8 @@ void logger_main(){
             addr_before_overflow = write_addr - LOG_ENTRY_SIZE_BYTES;
             write_addr = 0;
             if(flash_overflow == false){
-                printf("WARNING: Flash overflow detected: old data will be erased!\n");
+                //printf("WARNING: Flash overflow detected: old data will be erased!\n");
+                remote_print(P_LOGOVERFLOW);
             }
             flash_overflow = true;
         }
@@ -229,17 +243,21 @@ void logger_main(){
             uint8_t requested_block = (uint8_t)floor(write_addr / 0x1000);
             if(curr_flash_block != requested_block){
                 #if LOG_READ_DEBUG || LOG_WRITE_DEBUG
-                    printf("Switching flash block to %i\n", requested_block);
+                    remote_print_data(P_LOGSWITCH, sizeof(requested_block), &requested_block);
+                    //printf("Switching flash block to %i\n", requested_block);
                 #endif
                 if(flash_4k_sector_erase(requested_block)){
                     curr_flash_block = requested_block;
                 } else {
-                    printf("ERROR: 4k Sector erase failed.\n");
+                    remote_print(P_LOGERASEFAIL);
+                    //printf("ERROR: 4k Sector erase failed.\n");
+                    
                 }
             }
         }
     } else if (!log_err_change && log_err){
-        printf("ERROR: Logging aborted!\n");
+        remote_print(P_LOGABORT);
+        //printf("ERROR: Logging aborted!\n");
         log_err_change = true;
     }
 }
