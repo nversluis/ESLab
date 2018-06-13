@@ -165,45 +165,35 @@ void butterworth_filter(){
 */
 
 
-//void kalman_filter(){
-//
-//	static int32_t p2phi, new_p_bias, new_q_bias, old_p_bias, old_q_bias, c1, q, c2, p, new_phi, old_phi, new_theta, old_theta, phi_error, theta_error; 
-//	if(kalman_flag){
-//		kalman_flag = false;
-//		old_q_bias = 0;
-//		old_p_bias = 0;
-//		new_q_bias = 0;
-//		new_p_bias = 0;
-//		p2phi = float2fix(0.0023); 
-//		c1 = float2fix(256);
-//		c2 = float2fix(1000000);
-//		old_phi = float2fix(0);
-//		old_theta = float2fix(0);	
-//	}
-//	if(check_sensor_int_flag()){
-//		get_raw_sensor_data();
-//	}
-//	p = fix2float(sp) - old_p_bias;
-//	new_phi = old_phi + (fixmul(p,p2phi));
-//	new_phi = new_phi - (new_phi - float2fix(say))/c1;
-//	new_p_bias = old_p_bias + (new_phi - (float2fix(say)))/c2;
-//	//p = fix2float(p);
-//	//phi_error = fix2float(phi_error);
-//	old_p_bias = new_p_bias;
-//	old_phi = new_phi;
-//
-//
-//	//q = sq - q_bias;
-//	//est_theta = est_theta + (fixmul(q,p2phi));
-//	//theta_error = est_theta - (est_theta - float2fix(sax))/c1;
-//	//q_bias = q_bias + (est_theta - (float2fix(sax)/p2phi))/c2;
-//	////q = fix2float(q);
-//	////theta_error = fix2float(theta_error);
-//
-//
-//	printf("new_phi: %d phi: %d\n", new_phi, phi);
-//	
-//}
+void kalman_filter(){
+	static bool kalman_flag = true;
+	static int32_t p2phi, p_bias, q_bias, c1, q, c2, p, phi, theta; 
+	if(kalman_flag){
+		kalman_flag = false;
+		q_bias = 0;
+		p_bias = 0;
+		p2phi = float2fix(0.099); 
+		c1 = 8;
+		c2 = 20;
+		phi = 0;
+		theta = 0;
+	}
+
+	if(check_sensor_int_flag()){
+		get_raw_sensor_data();
+	}
+
+	p = sp - p_bias;
+	phi = phi + fix2float(p*p2phi);
+	phi = phi + ((say - phi)>>c1);
+	p_bias = p_bias + ((phi - say)>>c2);
+	
+	q = sq - q_bias;
+	theta = theta + fix2float(q*p2phi);
+	theta = theta + ((sax - theta)>>c1);
+	q_bias = q_bias + ((theta - sax)>>c2);
+	//printf("phi: %d, theta: %d, control_time: %d\n" , phi, theta, control_time);
+}
 
 
 
