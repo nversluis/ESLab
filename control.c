@@ -147,7 +147,11 @@ void butterworth_filter(){
 	//	for(uint8_t i=0; i<4; i++){
 	//		ae[i]=0;
 	//	}
-		printf("sr: %06d filetered: %06ld\n", sr, 10*filtered_sr);
+		//printf("sr: %06d filetered: %06ld\n", sr, 10*filtered_sr);
+		uint32_t tdata[2];
+		tdata[0] = (uint32_t)sr;
+		tdata[1] = (uint32_t)filtered_sr;
+		remote_print_data(P_BUTTERWORTH, sizeof(tdata), tdata);
 	//}
 }
 

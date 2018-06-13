@@ -265,6 +265,7 @@ void process_packet(uint8_t readByte){
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;
 	int16_t offsets[6];
+	uint32_t temp[2];
 
 	#if PACKET_DEBUG == 1
 	printf("Comp: Readbyte: 0x%02X\n", readByte);
@@ -552,6 +553,11 @@ void process_packet(uint8_t readByte){
 								printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", aet[0],aet[1],aet[2],aet[3]);
 								break;
 							*/
+							case P_BUTTERWORTH:
+								temp[0] = (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24);
+								temp[1] = (uint32_t)(inPacketBuffer[5] | inPacketBuffer[6] << 8 | inPacketBuffer[7] << 16 | inPacketBuffer[8] << 24)
+								printf("sr: %06d filetered: %06ld\n", (int16_t)temp[0], 10*(int32_t)temp[1]);
+								break;
 							case 0x00:
 							default:
 								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4], inPacketBuffer[5], inPacketBuffer[6], inPacketBuffer[7], inPacketBuffer[8]);
