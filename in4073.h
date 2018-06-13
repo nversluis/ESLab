@@ -30,6 +30,7 @@
 #define PACKET_DEBUG 0
 #define LOG_DEBUG 1
 #define MOTOR_VALUES_DEBUG 0
+#define DEBUG_STATE_TRANSITIONS 0
 
 #define TIMER_PERIOD	4 //50ms=20Hz (MAX 23bit, 4.6h), 4ms = 250Hz
 #define MAX_PACKET_SIZE 10

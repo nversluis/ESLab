@@ -18,6 +18,7 @@
 #include "protocol.h"
 #include "joystick.h"
 #include "../crc.h"
+#include "pc.h"
 
 int rs232_putchar(char c);
 
@@ -263,17 +264,18 @@ void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
 	uint8_t headerFound = false;
 	uint8_t crc_calc = 0;
-	int16_t aet[4];
-	int16_t offsetst[6];
+	int16_t offsets[6];
 
 	#if PACKET_DEBUG == 1
 	printf("Comp: Readbyte: 0x%02X\n", readByte);
 	#endif
+	/*
 	if(readByte == PING){
 		//uart_put(PING);
 		printf("Quad Ack: Ping.\n");
 		inPacketState = 0;
 	}
+	*/
 	
 	switch(inPacketState){
 		case 0:
@@ -360,28 +362,49 @@ void process_packet(uint8_t readByte){
 			if(CRCIsValid == true){
 				switch(headerByte){
 					case MODESET:
+						mode = inPacketBuffer[0];
+						#if PC_TERMINAL_DEBUG == 1
 						printf("Quad Ack: Modeset: ");
 						printMode(inPacketBuffer[0]);
 						printf("\n");
+						#endif
 					case MODEGET:
+						mode = inPacketBuffer[0];
+						#if PC_TERMINAL_DEBUG == 1
 						printf("Quad: Modeget: ");
 						printMode(inPacketBuffer[0]);
 						printf("\n");
+						#endif
 						break;
 					case BAT:
-						printf("Quad: Battery voltage: %u volts.\n", (uint16_t)(inPacketBuffer[0] | inPacketBuffer[1] << 8));
+						bat_volt = (uint16_t)(inPacketBuffer[0] | inPacketBuffer[1] << 8);
+						#if PC_TERMINAL_DEBUG == 1
+						printf("Quad: Battery voltage: %u volts.\n", bat_volt);
+						#endif
 						break;
 					case CAL_GET:
 						for(uint8_t i=0; i<6; i++){
-							offsetst[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
+							offsets[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
 						}
-						printf("Quad: Calibration Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", offsetst[0], offsetst[1], offsetst[2], offsetst[3], offsetst[4], offsetst[5]);
+						phi_o = offsets[0];
+						theta_o = offsets[1];
+						psi_o = offsets[2];
+						sp_o = offsets[3];
+						sq_o = offsets[4];
+						sr_o = offsets[5];
+						#if PC_TERMINAL_DEBUG == 1
+						printf("Quad: Calibration Offsets: phi=%d, theta=%d, psi=%d, sp=%d, sq=%d, sr=%d.\n", phi_o, theta_o, psi_o, sp_o, sq_o, sr_o);
+						#endif
 						break;
 					case AE_OUT:
 						for(uint8_t i=0; i<4; i++){
-							aet[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
+							ae[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
 						}
-						printf("Quad: ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", aet[0],aet[1],aet[2],aet[3]);
+						#if PC_TERMINAL_SHOW_MOTORS == 1
+						printf("Quad: ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
+						#endif
+						break;
+					/*
 					case J_CONTROL:
 						printf("Quad Ack: Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
 						break;
@@ -409,6 +432,7 @@ void process_packet(uint8_t readByte){
 					case K_HEIGHT:
 						printf("Quad Ack: k_LRPY[7]: 0x%02X\n", (int8_t)inPacketBuffer[7]);
 						break;
+					*/
 					case PING_DATCRC:
 						printf("Quad: Pingdata? It's not supposed to send this to the computer...\n");
 						break;
@@ -476,24 +500,27 @@ void process_packet(uint8_t readByte){
 						}
 						break;
 					case PRINT2:
-						printf("Quad: ");
 						switch(inPacketBuffer[0]){
 							case P_NEWMODEINFO:
+								#if PC_TERMINAL_DEBUG == 1
 								printf("SETNEWMODE: previousmode: ");
 								printMode(inPacketBuffer[1]);
 								printf(", modetoset: ");
 								printMode(inPacketBuffer[2]);
 								printf(".\n");
+								#endif
 								break;
 							case P_BATCRIT:
-								printf("Battery Critically low (%u volts)!\n", (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8));
+								bat_volt = (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8);
+								printf("Quad: Battery Critically low (%u volts)!\n", bat_volt);
 								break;
 							case P_BATLOW:
-								printf("Battery low (%u volts)!\n", (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8));
+								bat_volt = (uint16_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8);
+								printf("Quad: Battery low (%u volts)!\n", bat_volt);
 								break;
 							case 0x00:
 							default:
-								printf("Generic error with data: 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2]);
+								printf("Quad: Generic error with data: 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2]);
 								break;
 						}
 						break;
@@ -517,12 +544,14 @@ void process_packet(uint8_t readByte){
 					case PRINT8:
 						printf("Quad: ");
 						switch(inPacketBuffer[0]){
+							/*
 							case P_MOTORDATA:
 								for(uint8_t i=0; i<4; i++){
 									aet[i] = (int16_t)((int16_t)inPacketBuffer[2*i] | (int16_t)inPacketBuffer[(2*i)+1]<<8);
 								}
 								printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", aet[0],aet[1],aet[2],aet[3]);
 								break;
+							*/
 							case 0x00:
 							default:
 								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4], inPacketBuffer[5], inPacketBuffer[6], inPacketBuffer[7], inPacketBuffer[8]);
@@ -558,8 +587,6 @@ void process_packet(uint8_t readByte){
  *----------------------------------------------------------------
  */
 
-
-#define JOYSTICK_HZ 100
 
 int main(int argc, char **argv)
 {
@@ -702,7 +729,9 @@ int main(int argc, char **argv)
 
 			if ((c = rs232_getchar_nb()) != -1){
 				process_packet(c);
+				#if PC_TERMINAL_DISPLAY_INTERFACE_CHARS == 1
 				term_putchar(c);
+				#endif
 			}
 			
 			//send_j_packet();

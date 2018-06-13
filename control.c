@@ -242,7 +242,8 @@ void yaw_control(){
 
 		convert_to_rpm((uint16_t)LRPY16[0], LRPY16[1], LRPY16[2], adjusted_yaw);
 		#if MOTOR_VALUES_DEBUG == 1
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
 		//printf("kp:%d\n", kp);	
 		#endif
 	}
@@ -251,7 +252,8 @@ void yaw_control(){
 			ae[i]=0;
 		}
 		#if MOTOR_VALUES_DEBUG == 1
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 		#endif
 	}
 }
@@ -308,7 +310,8 @@ void full_control(){
 
 		convert_to_rpm((uint16_t)LRPY16[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
 		#if MOTOR_VALUES_DEBUG == 1
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 		//printf("kp:%d,kp1:%d,kp2:%d\n", kp, kp1,kp2);
 		#endif
 	}else{
@@ -316,7 +319,8 @@ void full_control(){
 			ae[i]=0;
 		}
 		#if MOTOR_VALUES_DEBUG == 1
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 		#endif
 	}
 }
@@ -362,7 +366,9 @@ void height_control(){
 		height_error = pressure - desired_pressure;
 		adjusted_lift = (uint16_t)LRPY16[0] + (kl * height_error);
 		convert_to_rpm((uint16_t)adjusted_lift, LRPY16[1], LRPY16[2], LRPY16[3]);
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kl:%d\n", ae[0], ae[1],ae[2],ae[3],kl);
+		// What is kl?
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kl:%d\n", ae[0], ae[1],ae[2],ae[3],kl);
 		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],LRPY[3]);
 		//printf("desired: %d, pressure: %d, height_error:%d\n", desired_pressure, pressure, height_error);
 
@@ -371,7 +377,8 @@ void height_control(){
 		for(uint8_t i=0; i<4; i++){
 			ae[i]=0;
 		}
-		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);	
+		send_motor_data();
+		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);	
 		
 	}
 
@@ -453,7 +460,9 @@ void run_control() // 250Hz
 {
 	static uint16_t panic_counter = 0;
 	uint32_t cur_time = 0;
+	#if DEBUG_STATE_TRANSITIONS == 1
 	uint8_t datat[2];
+	#endif
 
 	switch(QuadState){
 		case SAFE:
@@ -583,9 +592,13 @@ void run_control() // 250Hz
 			remote_notify_state(SAFE, INFO);
 			break;
 		case SETNEWMODE:
+			#if DEBUG_STATE_TRANSITIONS == 1
+			// Debug mode transitions
 			datat[0] = PreviousMode;
 			datat[1] = ModeToSet;
 			remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
+			#endif
+
 			// Do nothing if we want the same mode again.
 			if(PreviousMode == ModeToSet){
 				QuadState = PreviousMode;
@@ -664,7 +677,7 @@ void run_control() // 250Hz
 			}
 
 			// Something went wrong
-			remote_notify_state(PANIC, ACK);
+			//remote_notify_state(PANIC, ACK);
 			QuadState = PANIC;
 			break;
 		default:

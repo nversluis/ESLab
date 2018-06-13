@@ -14,6 +14,7 @@
 #include "joystick.h"
 #include "../crc.h"
 #include "protocol.h"
+#include "pc.h"
 
 #define JS_DEV	"/dev/input/js0"
 

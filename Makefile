@@ -110,6 +110,7 @@ CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu11 # abi=Application Binary Interface
 CFLAGS += -Wall -O3 # -Werror
+CFLAGS += -Wno-unused-variable
 CFLAGS += -mfloat-abi=soft # we don't want floats - no hardware fpu
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing

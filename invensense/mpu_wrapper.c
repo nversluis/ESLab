@@ -10,6 +10,7 @@
 #include "in4073.h"
 
 #define QUAT_SENS       0x040000000 //1073741824.f //2^30
+#define ENABLE_PRINTS	0
 
 void update_euler_from_quaternions(int32_t *quat) 
 {
@@ -92,27 +93,49 @@ void imu_init(bool dmp, uint16_t freq)
 	// tap feature is there to set freq to 100Hz, a bug provided by invensense :)
 	uint16_t dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_CAL_GYRO | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP;
 
-	//mpu	
-	printf("\rmpu init result: %d\n", mpu_init(NULL));
-	printf("\rmpu set sensors: %d\n", mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL));
-	printf("\rmpu conf fifo  : %d\n", mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL));
+	//mpu
+	int init = mpu_init(NULL);
+	int set_sensors = mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+	int configure_fifo = mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+
+	#if ENABLE_PRINTS == 1
+	printf("\rmpu init result: %d\n", init);
+	printf("\rmpu set sensors: %d\n", set_sensors);
+	printf("\rmpu conf fifo  : %d\n", configure_fifo);
+	#endif
+
 	mpu_set_int_level(0);
 	mpu_set_int_latched(1);
 
 	if (dmp)
 	{
-		printf("\r\ndmp load firm  : %d\n", dmp_load_motion_driver_firmware());
-		printf("\rdmp set orient : %d\n", dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_orientation)));
+		int load_firmware = dmp_load_motion_driver_firmware();
+		int set_orientation = dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_orientation));
+		int enable_features = dmp_enable_feature(dmp_features);
+		int set_rate = dmp_set_fifo_rate(100);
+		int set_state = mpu_set_dmp_state(1);
+		int dlpf_set_freq = mpu_set_lpf(10);
+
+		#if ENABLE_PRINTS == 1
+		printf("\r\ndmp load firm  : %d\n", load_firmware);
+		printf("\rdmp set orient : %d\n", set_orientation);
 	
-		printf("\rdmp en features: %d\n", dmp_enable_feature(dmp_features));
-		printf("\rdmp set rate   : %d\n", dmp_set_fifo_rate(100));
-		printf("\rdmp set state  : %d\n", mpu_set_dmp_state(1));
-		printf("\rdlpf set freq  : %d\n", mpu_set_lpf(10));
+		printf("\rdmp en features: %d\n", enable_features);
+		printf("\rdmp set rate   : %d\n", set_rate);
+		printf("\rdmp set state  : %d\n", set_state);
+		printf("\rdlpf set freq  : %d\n", dlpf_set_freq);
+		#endif
 	} else {
 		unsigned char data = 0;
-		printf("\rdisable dlpf   : %d\n", i2c_write(0x68, 0x1A, 1, &data));
+		bool disable_dlpf = i2c_write(0x68, 0x1A, 1, &data);
+		#if ENABLE_PRINTS == 1
+		printf("\rdisable dlpf   : %d\n", disable_dlpf);
+		#endif
 		// if dlpf is disabled (0 or 7) then the sample divider that feeds the fifo is 8kHz (derrived from gyro).
 		data = 8000 / freq - 1;
-		printf("\rset sample rate: %d\n", i2c_write(0x68, 0x19, 1, &data));
+		bool set_sample_rate = i2c_write(0x68, 0x19, 1, &data);
+		#if ENABLE_PRINTS == 1
+		printf("\rset sample rate: %d\n", set_sample_rate);
+		#endif
 	}
 }
