@@ -225,10 +225,11 @@ void yaw_control(){
 		}
 		
 		kp += k_LRPY[4];
-		if(kp < 1){
-			kp = 1;
+		if(kp < 0){
+			kp = 0;
+			k_LRPY[4]=0;
 		}
-		yaw_error = LRPY16[3] + k_LRPY[3] + sr;								//take keyboard offset into account
+		yaw_error = LRPY16[3]/4 + k_LRPY[3]*4 + (sr - sr_o);								//take keyboard offset into account
 		adjusted_yaw = kp * yaw_error;
 
 		convert_to_rpm((uint16_t)LRPY16[0], LRPY16[1], LRPY16[2], adjusted_yaw);
@@ -265,7 +266,7 @@ void full_control(){
 
 	int16_t LRPY16[4];
 	int16_t roll_error, pitch_error, yaw_error, adjusted_roll, adjusted_pitch, adjusted_yaw;
-	int8_t kp = 1,kp1 = 1,kp2 = 1;
+	int8_t kp = 10,kp1 = 1,kp2 = 1;
 
 	for(int8_t i=0; i<4; i++){
 		LRPY16[i] = ((int16_t)(LRPY[i]))<<8;
@@ -278,26 +279,26 @@ void full_control(){
 		}
 		
 		kp += k_LRPY[4];
-		if(kp < 1){
-			kp = 1;
+		if(kp < 0){
+			kp = 0;
 			k_LRPY[4]=0;
 		}
 		kp1 += k_LRPY[5];
-		if(kp1 < 1){
-			kp1 = 1;
+		if(kp1 < 0){
+			kp1 = 0;
 			k_LRPY[5]=0;
 		}
 		kp2 += k_LRPY[6];
-		if(kp2 < 1 ){
-			kp2 = 1;
+		if(kp2 < 0 ){
+			kp2 = 0;
 			k_LRPY[6]=0;
 		}
-		roll_error = LRPY16[1]/4 - (k_LRPY[1]*4) - phi;
-		pitch_error = LRPY16[2]/4 - (k_LRPY[2]*4) - theta;
-		yaw_error = LRPY16[3]/4 + (k_LRPY[3]*4) + sr;								//take keyboard offset into account
-		adjusted_pitch = (kp1 * pitch_error)/4 + (kp2 * sq)/2;
-		adjusted_roll = (kp1 * roll_error)/4 - (kp2 * sp)/2;
-		adjusted_yaw = kp * yaw_error;
+		roll_error = LRPY16[1]/4 - (k_LRPY[1]*4) - (phi - phi_o);
+		pitch_error = LRPY16[2]/4 - (k_LRPY[2]*4) - (theta - theta_o);
+		yaw_error = LRPY16[3]/4 + (k_LRPY[3]*4) + (sr - sr_o);								//take keyboard offset into account
+		adjusted_pitch = (kp1 * pitch_error)/4 + (kp2 * (sq - sq_o)/2;
+		adjusted_roll = (kp1 * roll_error)/4 - (kp2 * (sp - sp_o))/2;
+		adjusted_yaw = (kp * yaw_error)*4;
 
 		convert_to_rpm((uint16_t)LRPY16[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
 		#if MOTOR_VALUES_DEBUG == 1
