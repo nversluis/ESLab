@@ -392,7 +392,7 @@ int main(void)
 	baro_init();
 	spi_flash_init();
 	adc_request_sample();
-	//ble_init();
+	ble_init();
 	log_init();
 	nrf_delay_ms(1100); // Wait 1100ms for the computer program to start reading data.
 
@@ -420,6 +420,12 @@ int main(void)
 		// }
 
 		process_packet();
+
+		while(ble_rx_queue.count > 0){
+			char c = dequeue(&ble_rx_queue);
+			enqueue(&ble_tx_queue, c);
+		}
+		ble_send();
 
  		if (check_timer_flag()) 
 		{

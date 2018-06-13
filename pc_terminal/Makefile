@@ -3,7 +3,7 @@ CFLAGS = -g -Wall -lm
 EXEC = ./pc-terminal
 
 all:
-	$(CC) $(CFLAGS) *.c ../crc.c -o $(EXEC)
+	$(CC) $(CFLAGS) *.c ../crc.c -o $(EXEC) -lbluetooth
 
 run: all
 	$(EXEC)

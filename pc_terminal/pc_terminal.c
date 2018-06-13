@@ -10,6 +10,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <sys/timeb.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/hci.h>
+#include <bluetooth/hci_lib.h>
 #include <time.h>
 #include <termios.h>
 #include <unistd.h>
@@ -607,6 +612,49 @@ void process_packet(uint8_t readByte){
 
 
 /*----------------------------------------------------------------
+ * scan_bluetooth -- Scans for bluetooth devices
+ * 
+ * Mods: Mark Röling
+ * Date: 07/06/18
+ *----------------------------------------------------------------
+ */
+void scan_bluetooth(){
+    inquiry_info *ii = NULL;
+    int max_rsp, num_rsp;
+    int dev_id, sock, len, flags;
+    int i;
+    char addr[19] = { 0 };
+    char name[248] = { 0 };
+
+    dev_id = hci_get_route(NULL);
+    sock = hci_open_dev( dev_id );
+    if (dev_id < 0 || sock < 0) {
+        perror("opening socket");
+        exit(1);
+    }
+
+    len  = 8;
+    max_rsp = 255;
+    flags = IREQ_CACHE_FLUSH;
+    ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));
+    
+    num_rsp = hci_inquiry(dev_id, len, max_rsp, NULL, &ii, flags);
+    if( num_rsp < 0 ) perror("hci_inquiry");
+
+    for (i = 0; i < num_rsp; i++) {
+        ba2str(&(ii+i)->bdaddr, addr);
+        memset(name, 0, sizeof(name));
+        if (hci_read_remote_name(sock, &(ii+i)->bdaddr, sizeof(name), 
+            name, 0) < 0)
+        strcpy(name, "[unknown]");
+        printf("%s  %s\n", addr, name);
+    }
+
+    free( ii );
+    close( sock );
+}
+
+/*----------------------------------------------------------------
  * main -- execute terminal
  * 
  * Mods: Himanshu Shah, Mark Röling
@@ -716,6 +764,10 @@ int main(int argc, char **argv)
 	// sleep(100);
 	/* send & receive
 	 */
+	sleep(5);
+	scan_bluetooth();
+
+	/*
 	for (;;)
 	{
 		read_js_values();
@@ -775,6 +827,7 @@ int main(int argc, char **argv)
 		}
 		//usleep(10000)
 	}
+	*/
         
 
 	term_exitio();

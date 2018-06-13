@@ -468,9 +468,9 @@ void run_control() // 250Hz
 {
 	static uint16_t panic_counter = 0;
 	uint32_t cur_time = 0;
-	#if DEBUG_STATE_TRANSITIONS == 1
+	//#if DEBUG_STATE_TRANSITIONS == 1
 	uint8_t datat[2];
-	#endif
+	//#endif
 
 	switch(QuadState){
 		case SAFE:
@@ -613,6 +613,12 @@ void run_control() // 250Hz
 				break;
 			}
 
+			// Something went terribly wrong
+			if(PreviousMode == SETNEWMODE){
+				QuadState = PANIC;
+				break;
+			}
+
 			// Don't allow any mode changes from PANIC or SAFE_NONZERO.
 			if(PreviousMode == PANIC || PreviousMode == PANIC_COUNTDOWN || PreviousMode == SAFE_NONZERO){
 				// printf("Can't statechange out of protected modes.\n");
@@ -629,6 +635,9 @@ void run_control() // 250Hz
 					break;
 				}else{
 					remote_print(P_CHANGENOTSAFE);
+					datat[0] = PreviousMode;
+					datat[1] = ModeToSet;
+					remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
 					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
@@ -642,6 +651,9 @@ void run_control() // 250Hz
 					break;
 				}else{
 					remote_print(P_CHANGENOTSAFE);
+					datat[0] = PreviousMode;
+					datat[1] = ModeToSet;
+					remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
 					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
@@ -657,6 +669,9 @@ void run_control() // 250Hz
 					break;
 				}else{
 					remote_print(P_CHANGENOTSAFE);
+					datat[0] = PreviousMode;
+					datat[1] = ModeToSet;
+					remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
 					//printf("Cannot change flight modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;
@@ -678,6 +693,9 @@ void run_control() // 250Hz
 					break;
 				}else{
 					remote_print(P_CALNOTSAFE);
+					datat[0] = PreviousMode;
+					datat[1] = ModeToSet;
+					remote_print_data(P_NEWMODEINFO, sizeof(PreviousMode)+sizeof(ModeToSet), datat);
 					//printf("Cannot change to logs/calibration modes, you're not in SAFE mode.\n");
 					QuadState = PreviousMode;
 					break;

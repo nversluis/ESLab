@@ -20,6 +20,7 @@ void uart_put(uint8_t byte)
 	else enqueue(&tx_queue, byte);
 
 	NVIC_EnableIRQ(UART0_IRQn);
+	enqueue(&ble_tx_queue, byte);
 }
 
 // Reroute printf
