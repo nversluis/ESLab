@@ -423,14 +423,34 @@ int main(void)
 
  		if (check_timer_flag()) 
 		{
+			/*
 			counter++;
+
+			if(ENABLE_1HZ_PROFILING == 1 && counter%(HZ1_CYCLES) == 6){
+				struct packet p_obj;
+				p_obj.header=SIGNAL_1HZ;
+				p_obj.data=SIGNAL_1HZ;
+				p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+				uart_put(p_obj.header);
+				uart_put(p_obj.data);
+				uart_put(p_obj.crc8);
+			}
+			if(ENABLE_10HZ_PROFILING == 1 && counter%(HZ10_CYCLES) == 3){
+				struct packet p_obj;
+				p_obj.header=SIGNAL_10HZ;
+				p_obj.data=SIGNAL_10HZ;
+				p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+				uart_put(p_obj.header);
+				uart_put(p_obj.data);
+				uart_put(p_obj.crc8);
+			}
 
 			#if LOG_DEBUG
 			if (counter%1 == 0){
 			#else
-			if (counter%20 == 0){
+			if (counter%200 == 0){
 			#endif
-				logger_main();
+				//logger_main();
 			}
 
 			// Check for battery voltage
@@ -461,7 +481,7 @@ int main(void)
 
 			// Send motor data -- Mark Röling
 			if(counter%(MOTORDATA_CYCLES) == 10){
-				send_motor_data();
+				//send_motor_data();
 			}
 
 			// Blink led -- Mark Röling
@@ -469,7 +489,7 @@ int main(void)
 				nrf_gpio_pin_toggle(BLUE);
 			}
 
-			run_control();
+			//run_control();
 
 			// adc_request_sample();
 			// read_baro();
@@ -479,16 +499,17 @@ int main(void)
 			// printf("%6d %6d %6d | ", phi, theta, psi);
 			// printf("%6d %6d %6d | ", sp, sq, sr);
 			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);=
-
+			*/
  			clear_timer_flag();
  		}
 
-		
+		/*
 		if (check_sensor_int_flag()) 
 		{
 			get_dmp_data();
 			run_filters();
 		}
+		*/
 		
 	}	
 

@@ -3,11 +3,13 @@
 
 #include<inttypes.h>
 
-#define JOYSTICK_HZ 100
+#define JOYSTICK_HZ 10
 #define PC_TERMINAL_DEBUG 1
 #define PC_TERMINAL_SHOW_MOTORS 0
 #define PC_TERMINAL_DISPLAY_INTERFACE_CHARS 0
+#define PACKET_DEBUG 0
 #define QUAD_NON_ZERO_DEBUG 1
+#define JOYSTICK_PROFILING 0
 
 int16_t ae[4];
 uint16_t bat_volt;

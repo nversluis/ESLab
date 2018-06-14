@@ -20,6 +20,24 @@
 #include "../crc.h"
 #include "pc.h"
 
+//time_t hz1_speed_measure_previous, hz1_speed_measure_current;
+struct timespec hz1_speed_measure_previous, hz1_speed_measure_current, hz10_speed_measure_previous, hz10_speed_measure_current, pingtc, pingtp;
+struct timeb time_buffer;
+
+struct timespec tsdiff(struct timespec start, struct timespec end)
+{
+	struct timespec temp;
+	/*
+	if ((end.tv_nsec-start.tv_nsec)<0) {
+		temp.tv_sec = end.tv_sec-start.tv_sec-1;
+		temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+	} else {*/
+		temp.tv_sec = end.tv_sec-start.tv_sec;
+		temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+	//}
+	return temp;
+}
+
 int rs232_putchar(char c);
 
 
@@ -252,13 +270,12 @@ void printMode(uint8_t mode){
  * Date: 07/06/18
  *----------------------------------------------------------------
  */
-#define MAX_PACKET_SIZE 10
+#define MAX_PACKET_SIZE 100
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
-#define PACKET_DEBUG 0
 
 void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
@@ -280,7 +297,7 @@ void process_packet(uint8_t readByte){
 	
 	switch(inPacketState){
 		case 0:
-			if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC || readByte == PRINT){
+			if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC || readByte == PING_DATACK || readByte == PRINT || readByte == SIGNAL_1HZ || readByte == SIGNAL_10HZ){
 				// 1 Byte packets
 				headerByte = readByte;
 				totalBytesToRead = 2;
@@ -362,6 +379,27 @@ void process_packet(uint8_t readByte){
 			#endif
 			if(CRCIsValid == true){
 				switch(headerByte){
+					/*
+					case SIGNAL_1HZ:
+						//ftime(&hz1_speed_measure_current);
+						//hz1_speed_measure_current=time_buffer.time*1000 + time_buffer.millitm;
+						clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+						diff = (uint32_t) (1000000.0 * (hz1_speed_measure_current.time - hz1_speed_measure_previous.time) + (hz1_speed_measure_current.millitm - hz1_speed_measure_previous.millitm));
+						printf("Quad Speed: 1Hz delta: %u us.\n", diff);
+						ftime(&hz1_speed_measure_previous);
+						//hz1_speed_measure_previous = 1hz_speed_measure_current;
+						break;
+					*/
+					case SIGNAL_10HZ:
+						//ftime(&hz10_speed_measure_current);
+						clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &hz10_speed_measure_current);
+						//hz1_speed_measure_current=time_buffer.time*1000 + time_buffer.millitm;
+						//diff10 = (uint32_t) (1000000.0 * (hz10_speed_measure_current.time - hz10_speed_measure_previous.time) + (hz10_speed_measure_current.millitm - hz10_speed_measure_previous.millitm));
+						struct timespec difft = tsdiff(hz10_speed_measure_previous, hz10_speed_measure_current);
+						printf("Quad Speed: 10Hz delta: %ldms.\n", (difft.tv_sec*1000) + (difft.tv_nsec/1000000));
+						//ftime(&hz10_speed_measure_previous);
+						hz10_speed_measure_previous = hz10_speed_measure_current;
+						break;
 					case MODESET:
 						mode = inPacketBuffer[0];
 						#if PC_TERMINAL_DEBUG == 1
@@ -369,6 +407,7 @@ void process_packet(uint8_t readByte){
 						printMode(inPacketBuffer[0]);
 						printf("\n");
 						#endif
+						break;
 					case MODEGET:
 						mode = inPacketBuffer[0];
 						#if PC_TERMINAL_DEBUG == 1
@@ -439,6 +478,9 @@ void process_packet(uint8_t readByte){
 						break;
 					case PING_DATACK:
 						printf("Quad Ack: Pingdata.\n");
+						clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &pingtp);
+						struct timespec diffrt = tsdiff(pingtc,pingtp);
+						printf("Quad RT: 10Hz roundtrip: %07ldus.\n", (diffrt.tv_sec*1000000) + (diffrt.tv_nsec/1000));
 						break;
 					case PRINT:
 						printf("Quad: ");
@@ -617,10 +659,12 @@ void process_packet(uint8_t readByte){
 
 int main(int argc, char **argv)
 {
-	struct timeb time_buffer;
 	char	c;
 	char c2;
 	time_t start_time, end_time, keep_alive_previous, keep_alive_current;
+	#if JOYSTICK_PROFILING == 1
+	time_t delta;
+	#endif
 
     
 
@@ -643,6 +687,9 @@ int main(int argc, char **argv)
 	ftime(&time_buffer);
 	start_time=time_buffer.time*1000 + time_buffer.millitm;
 	end_time = start_time;
+	#if JOYSTICK_PROFILING == 1
+	delta = end_time;
+	#endif
 	keep_alive_previous = start_time;
 	keep_alive_current = start_time;
 	term_puts("Comp: Ready.\n");
@@ -719,6 +766,30 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		read_js_values();
+		if ((c = rs232_getchar_nb()) != -1){
+			process_packet(c);
+			#if PC_TERMINAL_DISPLAY_INTERFACE_CHARS == 1
+			term_putchar(c);
+			#endif
+		}
+		ftime(&time_buffer);
+		keep_alive_current=time_buffer.time*1000 + time_buffer.millitm;
+		if(keep_alive_current > (keep_alive_previous + KEEP_ALIVE_TIMEOUT_MS)){ // 1 second keepalive
+			keep_alive_previous = keep_alive_current;
+			struct packet p_obj;
+			p_obj.header=PING_DATCRC;
+			p_obj.data=PING_DATCRC;
+			p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
+			rs232_putchar(p_obj.header);
+			rs232_putchar(p_obj.data);
+			rs232_putchar(p_obj.crc8);
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &pingtc);
+			//printf("Comp: Pingdata sent.\n");
+
+			// TODO: maybe integrate no-ping response message?
+		}
+
+		/*
 		if((start_time + (1000/JOYSTICK_HZ)) >= end_time){
 
 			if ((c = term_getchar_nb()) != -1){
@@ -736,43 +807,26 @@ int main(int argc, char **argv)
 					detect_term_input(c);
 					//break;
 				}
-			}else{
-				ftime(&time_buffer);
-				keep_alive_current=time_buffer.time*1000 + time_buffer.millitm;
-				if(keep_alive_current > (keep_alive_previous + KEEP_ALIVE_TIMEOUT_MS)){ // 1 second keepalive
-					keep_alive_previous = keep_alive_current;
-					struct packet p_obj;
-					p_obj.header=PING_DATCRC;
-					p_obj.data=PING_DATCRC;
-					p_obj.crc8 = make_crc8_tabled(p_obj.header, &p_obj.data, 1);
-					rs232_putchar(p_obj.header);
-					rs232_putchar(p_obj.data);
-					rs232_putchar(p_obj.crc8);
-
-					// TODO: maybe integrate no-ping response message?
-				}
+			}else{*/
 				//term_puts("Nothing should be found really...\n");
-			}
-
-			if ((c = rs232_getchar_nb()) != -1){
-				process_packet(c);
-				#if PC_TERMINAL_DISPLAY_INTERFACE_CHARS == 1
-				term_putchar(c);
-				#endif
-			}
-			
+			/*}			
 			//send_j_packet();
 		
 			ftime(&time_buffer);
 			end_time=time_buffer.time*1000 + time_buffer.millitm;
 		
 		}else{
+			#if JOYSTICK_PROFILING == 1
+			printf("Comp: Joystick send delta: %u\n", end_time-delta);
+			delta = end_time;
+			#endif
 			ftime(&time_buffer);
 			end_time = start_time;
 			start_time=time_buffer.time*1000 + time_buffer.millitm;
-			keep_alive_previous = start_time; // update the keepalive
+			//keep_alive_previous = start_time; // update the keepalive
 			send_j_packet();
 		}
+		*/
 		//usleep(10000)
 	}
         

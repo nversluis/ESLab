@@ -49,6 +49,8 @@ void detect_term_input(char);
 #define LOG_ENTRY       0xA0
 #define LOG_START       0xA1
 #define LOG_END         0xA2
+#define SIGNAL_1HZ		0xAA
+#define SIGNAL_10HZ		0xAB
 
 // Print packets
 #define PRINT			0x99 // Print statement without data
