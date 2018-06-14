@@ -2,6 +2,7 @@
 #define _LOG_LIB_H
 
 #include "pc_terminal/protocol.h"
+#include <string.h>
 #include <stdio.h>
 #define LOG_FILENAME "log.txt"
 

@@ -420,6 +420,7 @@ bool flash_chip_erase(void)
 **/
 bool flash_4k_sector_erase(uint8_t sector_number)
 {
+    // Check sector bounds and write enable
     if(sector_number > 31){
         printf("ERROR: Sector erase out of bounds\n");
         return false;
@@ -429,9 +430,13 @@ bool flash_4k_sector_erase(uint8_t sector_number)
         printf("ERROR: Flash write not enabled\n");
 		return false;
 	}
+    // Calculate sector starting address
     uint32_t addr = (uint32_t)sector_number * (uint32_t)0x1000; // Sector number * 4096
+    // Create flash erase packet
     uint8_t tx_data[4] = {SECTOR_ERASE, (addr >> (8*2)) & 0xFF, (addr >> (8*1)) & 0xFF, (addr & 0xFF)};
+    // Send packet to flash
 	bool result = spi_master_tx(SPI_MODULE, 4, tx_data);
+    // Wait for flash to erase
 	nrf_delay_ms(25);  // Tse from the flash data sheet
 	return result;
 }

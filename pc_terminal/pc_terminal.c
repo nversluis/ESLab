@@ -259,7 +259,6 @@ uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
-uint8_t log_entry_buffer[LOG_ENTRY_SIZE_BYTES];
 
 void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
@@ -493,7 +492,7 @@ void process_packet(uint8_t readByte){
 								printf("ERROR: Log not initialized\n");
 								break;
 							case P_LOGEMPTYSPACE:
-								printf("INFO: Empty flash space found.\n");
+								printf("ERROR: Empty flash space read.\n");
 								break;
 							case P_GOODBYE:
 								printf("Goodbye.\n");
