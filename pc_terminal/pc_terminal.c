@@ -16,6 +16,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "protocol.h"
+#include "../logwriter.h"
 #include "joystick.h"
 #include "../crc.h"
 #include "pc.h"
@@ -252,13 +253,13 @@ void printMode(uint8_t mode){
  * Date: 07/06/18
  *----------------------------------------------------------------
  */
-#define MAX_PACKET_SIZE 10
+#define MAX_PACKET_SIZE LOG_ENTRY_SIZE_BYTES+1
 uint8_t inPacketState = 0;
 uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
-#define PACKET_DEBUG 0
+uint8_t log_entry_buffer[LOG_ENTRY_SIZE_BYTES];
 
 void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
@@ -316,6 +317,13 @@ void process_packet(uint8_t readByte){
 				totalBytesToRead = 9;
 				headerFound = true;
 			}
+			else if(readByte == LOG_ENTRY){
+				// LOG_ENTRY_SIZE_BYTES Byte packets
+				headerByte = readByte;
+				totalBytesToRead = LOG_ENTRY_SIZE_BYTES+1;
+				headerFound = true;
+			}
+			
 
 			if(headerFound == true){
 				inPacketBufSize = 0;
@@ -405,6 +413,14 @@ void process_packet(uint8_t readByte){
 						printf("Quad: ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0],ae[1],ae[2],ae[3]);
 						#endif
 						break;
+					case LOG_ENTRY:
+						for(uint8_t i=1; i<LOG_ENTRY_SIZE_BYTES+1; i++){
+							log_entry_buffer[i] = inPacketBuffer[i];
+						}
+						if(!write_log_entry_to_file((uint8_t*)log_entry_buffer)){
+							printf("ERROR: Writing log entry to file failed!\n");
+						}
+						break;
 					/*
 					case J_CONTROL:
 						printf("Quad Ack: Lift: %d, Roll: %d, Pitch: %d, Yaw: %d\n", (uint8_t)inPacketBuffer[0], (int8_t)inPacketBuffer[1], (int8_t)inPacketBuffer[2], (int8_t)inPacketBuffer[3]);
@@ -484,7 +500,7 @@ void process_packet(uint8_t readByte){
 								break;
 							case 0x00:
 							default:
-								printf("Generic error.\n");
+								printf("Generic error PRINT (0x%02X).\n", inPacketBuffer[0]);
 								break;
 						}
 						break;
@@ -517,7 +533,7 @@ void process_packet(uint8_t readByte){
 								break;
 							case 0x00:
 							default:
-								printf("Quad: Generic error with data: 0x%02X.\n", inPacketBuffer[1]);
+								printf("Quad: Generic error PRINT1 (0x%02x) with data: 0x%02X.\n", inPacketBuffer[0], inPacketBuffer[1]);
 								break;
 						}
 						break;
@@ -542,7 +558,7 @@ void process_packet(uint8_t readByte){
 								break;
 							case 0x00:
 							default:
-								printf("Quad: Generic error with data: 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2]);
+								printf("Quad: Generic error PRINT2 (0x%02X) with data: 0x%02X, 0x%02X.\n", inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2]);
 								break;
 						}
 						break;
@@ -557,9 +573,10 @@ void process_packet(uint8_t readByte){
 								break;
 							case P_LOGENTRY:
 								printf("Entry(0x%08X).\n", (uint32_t)(inPacketBuffer[1] | inPacketBuffer[2] << 8 | inPacketBuffer[3] << 16 | inPacketBuffer[4] << 24));
+								break;
 							case 0x00:
 							default:
-								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4]);
+								printf("Generic error PRINT4 (0x%02X) with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4]);
 								break;
 						}
 						break;
@@ -581,7 +598,7 @@ void process_packet(uint8_t readByte){
 								break;
 							case 0x00:
 							default:
-								printf("Generic error with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4], inPacketBuffer[5], inPacketBuffer[6], inPacketBuffer[7], inPacketBuffer[8]);
+								printf("Generic error PRINT8 (0x%02X) with data: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X.\n", inPacketBuffer[0], inPacketBuffer[1], inPacketBuffer[2], inPacketBuffer[3], inPacketBuffer[4], inPacketBuffer[5], inPacketBuffer[6], inPacketBuffer[7], inPacketBuffer[8]);
 								break;
 						}
 						break;

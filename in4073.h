@@ -155,6 +155,7 @@ void ble_send(void);
 
 // Logger
 #define FLASH_ADDR_LIMIT   		0x01FFFF    // Maximum flash address
+// IF ENTRY SIZE ADJUSTED HERE, ALSO ADJUST IN protocol.h
 #define LOG_ENTRY_SIZE_BYTES  	27          // Amount of bytes in a log entry
 #define LOG_PERIOD_US			10			// Amount of microseconds between logs
 bool log_init();

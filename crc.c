@@ -9,8 +9,6 @@
  * https://barrgroup.com/Embedded-Systems/How-To/CRC-Calculation-C-Code
  * Author: Niels Versluis - 4227646
  *--------------------------------------------------------------------*/
-#include <stdint.h> 
-#include <stdio.h> 
 #include "crc.h"
 
 #define PC_BENCH 0

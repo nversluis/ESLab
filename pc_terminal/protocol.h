@@ -8,6 +8,7 @@
 #ifndef PROTOCOL_H__
 #define PROTOCOL_H__
 #include<inttypes.h>
+#include<stdbool.h>
 
 #define KEEP_ALIVE_TIMEOUT_MS 1000
 
@@ -16,7 +17,7 @@ void detect_term_input(char);
 //     Packet Headers    //
 //Mode packets
 #define MODESET			0x70
-#define MODEGET			0X71
+#define MODEGET			0x71
 #define ACK				0xAB
 #define INFO			0xAC
 
@@ -47,8 +48,6 @@ void detect_term_input(char);
 #define CAL_GET			0x97
 #define BIG_PACKET		0x98
 #define LOG_ENTRY       0xA0
-#define LOG_START       0xA1
-#define LOG_END         0xA2
 
 // Print packets
 #define PRINT			0x99 // Print statement without data
@@ -110,14 +109,16 @@ void detect_term_input(char);
 #define DECREASE		-1
 #define INCREASE		1
 
+// IF ENTRY SIZE ADJUSTED HERE, ALSO ADJUST IN in4073.h
+#define LOG_ENTRY_SIZE_BYTES 27 // Amount of bytes in a single log entry
+
 struct packet{
     uint8_t header;
-    uint8_t data; //make it 1 byte for now, gonna fix this now
+    uint8_t data; //make it 1 byte for now, gonna fix this
     uint8_t crc8;
 };
 
 int rs232_putchar(char c);
 void term_puts(char *s);
-
 
 #endif   // protocol.h
