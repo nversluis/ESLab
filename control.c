@@ -359,7 +359,7 @@ void height_control(){
 		adjusted_lift = (uint16_t)LRPY16[0] + (kl * height_error);
 		convert_to_rpm((uint16_t)adjusted_lift, LRPY16[1], LRPY16[2], LRPY16[3]);
 		// What is kl?
-		send_motor_data();
+		//send_motor_data();
 		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kl:%d\n", ae[0], ae[1],ae[2],ae[3],kl);
 		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],LRPY[3]);
 		//printf("desired: %d, pressure: %d, height_error:%d\n", desired_pressure, pressure, height_error);
@@ -369,7 +369,7 @@ void height_control(){
 		for(uint8_t i=0; i<4; i++){
 			ae[i]=0;
 		}
-		send_motor_data();
+		//send_motor_data();
 		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);	
 		
 	}
