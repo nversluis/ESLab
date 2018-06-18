@@ -259,6 +259,7 @@ uint8_t headerByte = 0x00;
 uint8_t totalBytesToRead = 0;
 uint8_t inPacketBuffer[MAX_PACKET_SIZE];
 uint8_t inPacketBufSize = 0;
+uint8_t log_entry_buffer[LOG_ENTRY_SIZE_BYTES] = {0};
 
 void process_packet(uint8_t readByte){
 	bool CRCIsValid = false;
@@ -413,10 +414,10 @@ void process_packet(uint8_t readByte){
 						#endif
 						break;
 					case LOG_ENTRY:
-						for(uint8_t i=1; i<LOG_ENTRY_SIZE_BYTES+1; i++){
+						for (uint8_t i = 1; i < LOG_ENTRY_SIZE_BYTES + 1; i++) {
 							log_entry_buffer[i] = inPacketBuffer[i];
 						}
-						if(!write_log_entry_to_file((uint8_t*)log_entry_buffer)){
+						if (!write_log_entry_to_file((uint8_t *)log_entry_buffer)) {
 							printf("ERROR: Writing log entry to file failed!\n");
 						}
 						break;
@@ -630,7 +631,7 @@ void process_packet(uint8_t readByte){
  *----------------------------------------------------------------
  */
 
-
+#ifdef PC_TERMINAL
 int main(int argc, char **argv)
 {
 	struct timeb time_buffer;
@@ -799,4 +800,4 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
+#endif

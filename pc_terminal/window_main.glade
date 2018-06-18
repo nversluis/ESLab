@@ -40,6 +40,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_btn_safe_press" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -51,6 +52,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_btn_panic_press" swapped="no"/>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
@@ -86,6 +88,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_btn_calibration_press" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -122,6 +125,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_btn_raw_press" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -185,7 +189,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="ModeLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
@@ -212,7 +216,7 @@
                     <property name="can_focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkProgressBar">
+                      <object class="GtkProgressBar" id="Motor0Bar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="valign">center</property>
@@ -267,7 +271,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkProgressBar">
+                      <object class="GtkProgressBar" id="Motor1Bar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="valign">center</property>
@@ -308,7 +312,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkProgressBar">
+                      <object class="GtkProgressBar" id="Motor2Bar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="valign">center</property>
@@ -349,7 +353,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkProgressBar">
+                      <object class="GtkProgressBar" id="Motor3Bar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="valign">center</property>
@@ -376,7 +380,7 @@
                     <property name="can_focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugValue0">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
@@ -391,7 +395,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugLabel0">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">end</property>
@@ -417,7 +421,7 @@
                     <property name="can_focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugValue1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
@@ -432,7 +436,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugLabel1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">end</property>
@@ -458,7 +462,7 @@
                     <property name="can_focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugValue2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
@@ -473,7 +477,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugLabel2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">end</property>
@@ -499,7 +503,7 @@
                     <property name="can_focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugValue3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
@@ -514,7 +518,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="DebugLabel3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">end</property>
@@ -556,7 +560,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkProgressBar" id="BatteryProgress">
+                      <object class="GtkProgressBar" id="BatteryBar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="valign">center</property>
@@ -607,11 +611,14 @@
             <property name="can_focus">False</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkTextView" id="txtview_output">
+              <object class="GtkTextView" id="ConsoleTxtView">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="margin_top">2</property>
+                <property name="editable">False</property>
+                <property name="cursor_visible">False</property>
                 <property name="buffer">textbuffer1</property>
+                <property name="monospace">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>

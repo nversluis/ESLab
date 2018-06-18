@@ -10,6 +10,9 @@
 #define PACKET_DEBUG 0
 #define QUAD_NON_ZERO_DEBUG 1
 
+// PC_GUI for GUI, PC_TERMINAL for Terminal interface
+#define PC_TERMINAL
+
 int16_t ae[4];
 uint16_t bat_volt;
 uint8_t mode;
