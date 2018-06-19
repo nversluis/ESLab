@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 
-#define JOYSTICK_HZ 100
+#define JOYSTICK_HZ 50
 #define PC_TERMINAL_DEBUG 1
 #define PC_TERMINAL_SHOW_MOTORS 0
 #define PC_TERMINAL_DISPLAY_INTERFACE_CHARS 0
