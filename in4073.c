@@ -39,6 +39,9 @@ void respond_to_ping(){
 	uart_put(p_obj.header);
 	uart_put(p_obj.data);
 	uart_put(p_obj.crc8);
+
+	time_postresponse = get_time_us();
+	printf("HF: %lu, DBF: %lu, CRCF: %lu, CRC: %lu, Pre: %lu, Post: %lu.\n", time_headerfound, time_databytefound-time_headerfound, time_crcbytefound-time_headerfound, time_crcmatched-time_headerfound, time_preresponse-time_headerfound, time_postresponse-time_headerfound);
 }
 
 /*------------------------------------------------------------------
@@ -129,30 +132,31 @@ void process_packet(){
 				// 	break;
 				// }
 				// Check if it's a header byte
-				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC){
+				if(/*readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH ||*/ readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
 					headerFound = true;
-				}
+					if(headerByte == PING_DATCRC) time_headerfound = get_time_us();
+				}/*
 				else if(readByte == BAT){
 					// 2 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 3;
 					headerFound = true;
-				}
+				}*/
 				else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
 					// 4 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 5;
 					headerFound = true;
-				}
+				}/*
 				else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
 					// 8 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 9;
 					headerFound = true;
-				}
+				}*/
 
 				if(headerFound == true){
 					inPacketBufSize = 0;
@@ -174,31 +178,36 @@ void process_packet(){
 					#if PACKET_DEBUG == 1
 					printf("CRC byte found:    0x%02X ", readByte);
 					#endif
+					if(headerByte == PING_DATCRC) time_crcbytefound = get_time_us();
 				}else{
 					#if PACKET_DEBUG == 1
 					printf("Data byte found:   0x%02X\n", readByte);
 					#endif
+					if(headerByte == PING_DATCRC) time_databytefound = get_time_us();
 					break;
 				}
 			case 2:
 				//printf("Calculating CRC... Headerbyte: %02X, inPacketBuffer[0]: %02X, inPacketBufSize: %02X\n", headerByte, inPacketBuffer[0], inPacketBufSize);
 				crc_calc = make_crc8_tabled(headerByte, (uint8_t*)inPacketBuffer, inPacketBufSize-1);
 				if(crc_calc == inPacketBuffer[inPacketBufSize-1]){
+				//if(true){
 					CRCIsValid = true;
 					#if PACKET_DEBUG == 1
 					printf("- Valid.\n");
 					#endif
+					time_crcmatched = get_time_us();
 				}else{
 					CRCIsValid = false;
 					#if PACKET_DEBUG == 1
 					printf("- Invalid! Calculated CRC %02X, but got %02X\n", crc_calc, inPacketBuffer[inPacketBufSize-1]);
 					#endif
+					uart_put(']');
 				}
 				#if PACKET_DEBUG == 1
 				printf("Total data bytes read: %d\n", inPacketBufSize-1);
 				#endif
 				if(CRCIsValid == true){
-					switch(headerByte){
+					switch(headerByte){/*
 						case MODESET:
 							//printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
 							PreviousMode = QuadState;
@@ -234,12 +243,13 @@ void process_packet(){
 							break;
 						case K_HEIGHT:
 							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
-							break;
+							break;*/
 						case PING_DATCRC:
 							#if PACKET_DEBUG == 1
 							dat_temp = PING_DATCRC;
 							printf("%c%c%c\n", PING_DATCRC, dat_temp, make_crc8_tabled(PING_DATCRC, &dat_temp, 1));
 							#endif
+							time_preresponse = get_time_us();
 							respond_to_ping();
 							break;
 						default:
@@ -252,6 +262,7 @@ void process_packet(){
 							}
 							printf("\n");
 							#endif
+							uart_put('P');
 							break;
 					}
 					
@@ -397,6 +408,7 @@ int main(void)
 	nrf_delay_ms(1100); // Wait 1100ms for the computer program to start reading data.
 
 	uint32_t counter = 0;
+	uint32_t time_cur = 0, time_prev = 0;
 	demo_done = false;
 	low_battery=false;
 	if (BATTERY_CONNECTED){
@@ -408,6 +420,8 @@ int main(void)
 	remote_print(P_MAINLOOP);
 	//uint32_t testvar = 0x01020304;
 	//remote_print_data(P_TEST4, sizeof(testvar), (uint8_t*)&testvar);
+	time_cur = get_time_us();
+	time_prev = time_cur;
 
 	while (!demo_done && !low_battery)
 	{
@@ -418,14 +432,19 @@ int main(void)
 		// 		uart_put(PING);
 		// 	}
 		// }
-
+		counter++;
+		if(counter%(1 << 18) == 5){
+			time_cur = get_time_us();
+			printf("C: %lu, T: %luus\n",(uint32_t)(1 << 15), (time_cur - time_prev) >> 18);
+			time_prev = time_cur;
+		}
 		process_packet();
 
  		if (check_timer_flag()) 
 		{
 			/*
-			counter++;
 
+			counter++;
 			if(ENABLE_1HZ_PROFILING == 1 && counter%(HZ1_CYCLES) == 6){
 				struct packet p_obj;
 				p_obj.header=SIGNAL_1HZ;

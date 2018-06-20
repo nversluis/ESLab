@@ -118,7 +118,7 @@ void rs232_open(void)
   	int 		result;
   	struct termios	tty;
 
-       	fd_RS232 = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);  // Hardcode your serial port here, or request it as an argument at runtime
+       	fd_RS232 = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);  // Hardcode your serial port here, or request it as an argument at runtime
 
 	assert(fd_RS232>=0);
 
@@ -142,7 +142,7 @@ void rs232_open(void)
 	cfsetispeed(&tty, B921600); // B115200
 
 	tty.c_cc[VMIN]  = 0;
-	tty.c_cc[VTIME] = 0; // added timeout
+	tty.c_cc[VTIME] = 1; // added timeout
 
 	tty.c_iflag &= ~(IXON|IXOFF|IXANY);
 
@@ -168,11 +168,12 @@ int	rs232_getchar_nb()
 
 	result = read(fd_RS232, &c, 1);
 
-	if (result == 0)
+	if (result == 0 || result == -1)
 		return -1;
 
 	else
 	{
+		//printf("Comp: Result: %u\n", result);
 		assert(result == 1);
 		return (int) c;
 	}
@@ -477,10 +478,10 @@ void process_packet(uint8_t readByte){
 						printf("Quad: Pingdata? It's not supposed to send this to the computer...\n");
 						break;
 					case PING_DATACK:
-						printf("Quad Ack: Pingdata.\n");
 						clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &pingtp);
 						struct timespec diffrt = tsdiff(pingtc,pingtp);
-						printf("Quad RT: 10Hz roundtrip: %07ldus.\n", (diffrt.tv_sec*1000000) + (diffrt.tv_nsec/1000));
+						//printf("Quad RT: 10Hz roundtrip: %07ldus.\n", );
+						printf("Quad Ack: Pingdata, rtt:   %07ldus.\n", (diffrt.tv_sec*1000000) + (diffrt.tv_nsec/1000));
 						break;
 					case PRINT:
 						printf("Quad: ");
@@ -661,9 +662,11 @@ int main(int argc, char **argv)
 {
 	char	c;
 	char c2;
-	time_t start_time, end_time, keep_alive_previous, keep_alive_current;
+	struct timespec joystick_previous, joystick_current, keep_alive_previous, keep_alive_current;
+	struct timespec difft;
+	uint64_t timediff_ms = 0;
 	#if JOYSTICK_PROFILING == 1
-	time_t delta;
+	struct timespec delta;
 	#endif
 
     
@@ -683,15 +686,13 @@ int main(int argc, char **argv)
 		fputc(c,stderr);
 
 
-
-	ftime(&time_buffer);
-	start_time=time_buffer.time*1000 + time_buffer.millitm;
-	end_time = start_time;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &joystick_current);
+	joystick_previous = joystick_current;
 	#if JOYSTICK_PROFILING == 1
-	delta = end_time;
+	delta = joystick_previous;
 	#endif
-	keep_alive_previous = start_time;
-	keep_alive_current = start_time;
+	keep_alive_previous = joystick_current;
+	keep_alive_current = joystick_current;
 	term_puts("Comp: Ready.\n");
 	
 
@@ -765,16 +766,39 @@ int main(int argc, char **argv)
 	 */
 	for (;;)
 	{
+		//Read joystick values to deplete joystick buffer
 		read_js_values();
+
+		//Process incoming packets
 		if ((c = rs232_getchar_nb()) != -1){
 			process_packet(c);
 			#if PC_TERMINAL_DISPLAY_INTERFACE_CHARS == 1
 			term_putchar(c);
 			#endif
 		}
-		ftime(&time_buffer);
-		keep_alive_current=time_buffer.time*1000 + time_buffer.millitm;
-		if(keep_alive_current > (keep_alive_previous + KEEP_ALIVE_TIMEOUT_MS)){ // 1 second keepalive
+
+		//Process terminal input characters
+		if ((c = term_getchar_nb()) != -1){
+			//printf("Character found: %c\n", c);
+			//rs232_putchar(c);
+
+			if((int)c == 27){	//detect for escape button and arrowkeys, as arrow keys contains escape character in them
+				if((c2 = term_getchar_nb()) == -1){
+					panic_now();
+					term_puts("Comp: Escape found.\n");
+					sleep(1);
+					break;
+				}
+			}else{
+				detect_term_input(c);
+			}
+		}
+
+		//Handle Keepalive pings
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &keep_alive_current);
+		difft = tsdiff(keep_alive_previous, keep_alive_current);
+		timediff_ms = ((uint64_t)(difft.tv_sec*1000) + (uint64_t)(difft.tv_nsec/1000000));
+		if(timediff_ms > KEEP_ALIVE_TIMEOUT_MS){ // 1 second keepalive
 			keep_alive_previous = keep_alive_current;
 			struct packet p_obj;
 			p_obj.header=PING_DATCRC;
@@ -784,49 +808,24 @@ int main(int argc, char **argv)
 			rs232_putchar(p_obj.data);
 			rs232_putchar(p_obj.crc8);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &pingtc);
-			//printf("Comp: Pingdata sent.\n");
+			printf("Comp: Pingdata sent. Diff: %04ldms.\n", timediff_ms);
 
 			// TODO: maybe integrate no-ping response message?
 		}
 
-		/*
-		if((start_time + (1000/JOYSTICK_HZ)) >= end_time){
-
-			if ((c = term_getchar_nb()) != -1){
-				//printf("Character found: %c\n", c);
-				//rs232_putchar(c);
-
-				if((int)c == 27){							 //detect for escape button and arrowkeys, as arrow keys contains escape character in them
-					if((c2 = term_getchar_nb()) == -1){
-						panic_now();
-						term_puts("Comp: Escape found.\n");
-						sleep(1);
-						break;
-					}
-				}else{
-					detect_term_input(c);
-					//break;
-				}
-			}else{*/
-				//term_puts("Nothing should be found really...\n");
-			/*}			
-			//send_j_packet();
-		
-			ftime(&time_buffer);
-			end_time=time_buffer.time*1000 + time_buffer.millitm;
-		
-		}else{
+		//Handle sending joystick data
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &joystick_current);
+		difft = tsdiff(joystick_previous, joystick_current);
+		timediff_ms = ((uint64_t)(difft.tv_sec*1000) + (uint64_t)(difft.tv_nsec/1000000));
+		if(timediff_ms > (1000/JOYSTICK_HZ)){ // If time for update
 			#if JOYSTICK_PROFILING == 1
-			printf("Comp: Joystick send delta: %u\n", end_time-delta);
-			delta = end_time;
+			printf("Comp: Joystick send delta: %u\n", timediff_ms);
 			#endif
-			ftime(&time_buffer);
-			end_time = start_time;
-			start_time=time_buffer.time*1000 + time_buffer.millitm;
+			joystick_previous = joystick_current;
 			//keep_alive_previous = start_time; // update the keepalive
 			send_j_packet();
 		}
-		*/
+		
 		//usleep(10000)
 	}
         

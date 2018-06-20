@@ -68,6 +68,13 @@ bool BlinkLed;
 bool USBDisconnected;
 bool demo_done;
 
+uint32_t time_headerfound;
+uint32_t time_databytefound;
+uint32_t time_crcbytefound;
+uint32_t time_crcmatched;
+uint32_t time_preresponse;
+uint32_t time_postresponse;
+
 // Remote printing
 void remote_print(uint8_t printCase);
 void remote_print_data(uint8_t printCase, uint8_t dataBytes, uint8_t* data);
