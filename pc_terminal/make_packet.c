@@ -130,22 +130,22 @@ void detect_term_input(char c) {
 			break;
 		case 'A':
 			p_obj.header = K_PITCH;
-			p_obj.data = DECREASE;
+			p_obj.data = INCREASE;
 			data_detected = 1;
 			break;
 		case 'B':
 			p_obj.header = K_PITCH;
-			p_obj.data = INCREASE;
+			p_obj.data = DECREASE;
 			data_detected = 1;
 			break;
 		case 'C':
 			p_obj.header = K_ROLL;
-			p_obj.data = INCREASE;
+			p_obj.data = DECREASE;
 			data_detected = 1;
 			break;
 		case 'D':
 			p_obj.header = K_ROLL;
-			p_obj.data = DECREASE;
+			p_obj.data = INCREASE;
 			data_detected = 1;
 			break;
 		default:

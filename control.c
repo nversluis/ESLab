@@ -50,8 +50,8 @@ void convert_to_rpm(uint32_t lift, int32_t roll, int32_t pitch, int32_t yaw){
 		if(lift > 10 && rotor[i] < 200){
 			rotor[i] = 200;
 		}
-		if(rotor[i] >= 700){
-			rotor[i] = 700;
+		if(rotor[i] >= 1000){
+			rotor[i] = 1000;
 		}
 	}
 
@@ -164,35 +164,55 @@ void butterworth_filter(){
 *------------------------------------------------------------------------------------------
 */
 
-
 void kalman_filter(){
 	static bool kalman_flag = true;
-	static int32_t p2phi, p_bias, q_bias, c1, q, c2, p, phi, theta; 
+	static int32_t sp_temp, sq_temp, say_temp, sax_temp, sp_kalman, sq_kalman, phi_kalman, theta_kalman, phi_error, theta_error, p_bias, q_bias, phi_raw, theta_raw, sp_raw, sq_raw, p2phi, c1, c2; 
 	if(kalman_flag){
+		imu_init(false,100);
 		kalman_flag = false;
 		q_bias = 0;
 		p_bias = 0;
-		p2phi = float2fix(0.099); 
-		c1 = 8;
-		c2 = 20;
-		phi = 0;
-		theta = 0;
+		p2phi = float2fix(0.0081); 
+		phi_kalman = 0;
+		theta_kalman = 0;
+		c1 = 128;
+		c2 = 800000;
 	}
 
 	if(check_sensor_int_flag()){
 		get_raw_sensor_data();
 	}
+	// if(flag){
+	// 	if(counter%10 == 0){
+	// 		flag = false;
+	// 		control_time = get_time_us();
+	// 		control_time = control_time - start_time;
+	// 		control_time = control_time/10;
+	// 	}
+	// 	else{
+	// 		counter++;
+	// 	}
+	// // start_time = get_time_us();
 
-	p = sp - p_bias;
-	phi = phi + fix2float(p*p2phi);
-	phi = phi + ((say - phi)>>c1);
-	p_bias = p_bias + ((phi - say)>>c2);
+	sp_temp = float2fix(sp);
+	say_temp = float2fix(say);
+	sp_kalman = sp_temp - p_bias;
+	phi_kalman = phi_kalman + fixmul(sp_kalman,p2phi);
+	phi_error = (phi_kalman - say_temp);
+	phi_kalman = phi_kalman - (phi_error/c1);
+	p_bias = p_bias + (float2fix((phi_error/p2phi))/c2);
+	phi_raw = fix2float(phi_kalman);
+	sp_raw = fix2float(sp_kalman);
 	
-	q = sq - q_bias;
-	theta = theta + fix2float(q*p2phi);
-	theta = theta + ((sax - theta)>>c1);
-	q_bias = q_bias + ((theta - sax)>>c2);
-	//printf("phi: %d, theta: %d, control_time: %d\n" , phi, theta, control_time);
+	sq_temp = float2fix(sq);
+	sax_temp = float2fix(sax);
+	sq_kalman = sq_temp - q_bias;
+	theta_kalman = theta_kalman + fixmul(sq_kalman,p2phi);
+	theta_error = (theta_kalman - sax_temp);
+	theta_kalman = theta_kalman - (theta_error/c1);
+	q_bias = q_bias + (float2fix((theta_error/p2phi))/c2);
+	theta_raw = fix2float(theta_kalman);
+	sq_raw = fix2float(sq_kalman);
 }
 
 
@@ -213,30 +233,32 @@ void yaw_control(){
 	int8_t kp = 10;
 	int32_t yaw_error, adjusted_yaw;
 
-	//YAW16=LRPY[3]<<8;
 	for(uint8_t i =0; i<4; i++){
-		LRPY16[i]=LRPY[i]<<8;
+		LRPY16[i]=((int16_t)LRPY[i])<<8;
 	}
 
-	if(LRPY[0] > 10 || LRPY[0] < -10){
+	if((uint16_t)LRPY[0] > 30){
 		if (check_sensor_int_flag()) 
 		{
 			get_dmp_data();
 		}
 		
 		kp += k_LRPY[4];
-		if(kp < 0){
-			kp = 0;
-			k_LRPY[4]=0;
+		if(kp < 1){
+			kp = 1;
+			k_LRPY[4]=kp-10;
+		}
+		if(kp > 50){
+			kp=50;
+			k_LRPY[4]=kp-10;
 		}
 		yaw_error = LRPY16[3]/4 + k_LRPY[3]*4 + (sr - sr_o);								//take keyboard offset into account
-		adjusted_yaw = kp * yaw_error;
+		adjusted_yaw = (kp * yaw_error)/4;
 
 		convert_to_rpm((uint16_t)LRPY16[0], LRPY16[1], LRPY16[2], adjusted_yaw);
 		#if MOTOR_VALUES_DEBUG == 1
 		send_motor_data();
-		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, sr:%d\n", ae[0],ae[1],ae[2],ae[3], sr);
-		//printf("kp:%d\n", kp);	
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kp:%d\n", ae[0],ae[1],ae[2],ae[3],kp);
 		#endif
 	}
 	else{
@@ -245,7 +267,7 @@ void yaw_control(){
 		}
 		#if MOTOR_VALUES_DEBUG == 1
 		send_motor_data();
-		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kp:%d\n", ae[0], ae[1],ae[2],ae[3], kp);
 		#endif
 	}
 }
@@ -265,45 +287,57 @@ void yaw_control(){
 void full_control(){
 
 	int16_t LRPY16[4];
-	int16_t roll_error, pitch_error, yaw_error, adjusted_roll, adjusted_pitch, adjusted_yaw;
-	int8_t kp = 10,kp1 = 1,kp2 = 1;
+	int32_t roll_error, pitch_error, yaw_error, adjusted_roll, adjusted_pitch, adjusted_yaw;
+	int8_t kp = 10,kp1 = 8,kp2 = 20;
 
 	for(int8_t i=0; i<4; i++){
 		LRPY16[i] = ((int16_t)(LRPY[i]))<<8;
 	}
 
-	if((uint8_t)LRPY[0] > 10){
+	if((uint8_t)LRPY[0] > 30){
 		if (check_sensor_int_flag()) 
 		{
 			get_dmp_data();
 		}
 		
 		kp += k_LRPY[4];
-		if(kp < 0){
-			kp = 0;
-			k_LRPY[4]=0;
+		if(kp < 1){
+			kp = 1;
+			k_LRPY[4]=kp-10;
+		}
+		if(kp > 50){
+			kp=50;
+			k_LRPY[4]=kp-10;
 		}
 		kp1 += k_LRPY[5];
-		if(kp1 < 0){
-			kp1 = 0;
-			k_LRPY[5]=0;
+		if(kp1 < 1){
+			kp1 = 1;
+			k_LRPY[5]=kp1-8;
+		}
+		if(kp1 > 50){
+			kp1 = 50;
+			k_LRPY[5]=kp1-8;
 		}
 		kp2 += k_LRPY[6];
-		if(kp2 < 0 ){
-			kp2 = 0;
-			k_LRPY[6]=0;
+		if(kp2 < 1 ){
+			kp2 = 1;
+			k_LRPY[6]=kp2-20;
+		}
+		if(kp2 > 50){
+			kp2 = 50;
+			k_LRPY[6]=kp2-20;
 		}
 		roll_error = LRPY16[1]/4 - (k_LRPY[1]*4) - (phi - phi_o);
 		pitch_error = LRPY16[2]/4 - (k_LRPY[2]*4) - (theta - theta_o);
 		yaw_error = LRPY16[3]/4 + (k_LRPY[3]*4) + (sr - sr_o);								//take keyboard offset into account
 		adjusted_pitch = (kp1 * pitch_error)/4 + (kp2 * (sq - sq_o))/2;
 		adjusted_roll = (kp1 * roll_error)/4 - (kp2 * (sp - sp_o))/2;
-		adjusted_yaw = (kp * yaw_error)*4;
+		adjusted_yaw = (kp * yaw_error)/4;
 
 		convert_to_rpm((uint16_t)LRPY16[0], adjusted_roll, adjusted_pitch, adjusted_yaw);
 		#if MOTOR_VALUES_DEBUG == 1
 		send_motor_data();
-		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d, kp:%d, kp1:%d, kp2:%d\n", ae[0], ae[1],ae[2],ae[3], kp,kp1,kp2);
 		//printf("kp:%d,kp1:%d,kp2:%d\n", kp, kp1,kp2);
 		#endif
 	}else{
@@ -312,7 +346,7 @@ void full_control(){
 		}
 		#if MOTOR_VALUES_DEBUG == 1
 		send_motor_data();
-		//printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
+		printf("ae0:%d, ae1:%d, ae2:%d, ae3:%d\n", ae[0], ae[1],ae[2],ae[3]);
 		#endif
 	}
 }
