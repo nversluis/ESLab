@@ -74,6 +74,8 @@ uint32_t time_crcbytefound;
 uint32_t time_crcmatched;
 uint32_t time_preresponse;
 uint32_t time_postresponse;
+uint32_t time_preprofile;
+uint32_t time_postprofile;
 
 // Remote printing
 void remote_print(uint8_t printCase);

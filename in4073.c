@@ -132,31 +132,31 @@ void process_packet(){
 				// 	break;
 				// }
 				// Check if it's a header byte
-				if(/*readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH ||*/ readByte == PING_DATCRC){
+				if(readByte == MODESET || readByte == MODEGET || readByte == K_ROLL || readByte == K_LIFT || readByte == K_YAW || readByte == K_P || readByte == K_P1 || readByte == K_P2 || readByte == K_HEIGHT || readByte == K_PITCH || readByte == PING_DATCRC){
 					// 1 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 2;
 					headerFound = true;
 					if(headerByte == PING_DATCRC) time_headerfound = get_time_us();
-				}/*
+				}
 				else if(readByte == BAT){
 					// 2 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 3;
 					headerFound = true;
-				}*/
+				}
 				else if(readByte == J_CONTROL || readByte == SYSTIME || readByte == PRESSURE){
 					// 4 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 5;
 					headerFound = true;
-				}/*
+				}
 				else if(readByte == J_CONTROL_D || readByte == AE_OUT || readByte == GYRO_OUT || readByte == CAL_GET){
 					// 8 Byte packets
 					headerByte = readByte;
 					totalBytesToRead = 9;
 					headerFound = true;
-				}*/
+				}
 
 				if(headerFound == true){
 					inPacketBufSize = 0;
@@ -207,7 +207,7 @@ void process_packet(){
 				printf("Total data bytes read: %d\n", inPacketBufSize-1);
 				#endif
 				if(CRCIsValid == true){
-					switch(headerByte){/*
+					switch(headerByte){
 						case MODESET:
 							//printf("Modeset: 0x%02X\n", inPacketBuffer[0]);
 							PreviousMode = QuadState;
@@ -243,7 +243,7 @@ void process_packet(){
 							break;
 						case K_HEIGHT:
 							k_LRPY[7]+=(int8_t)inPacketBuffer[0];
-							break;*/
+							break;
 						case PING_DATCRC:
 							#if PACKET_DEBUG == 1
 							dat_temp = PING_DATCRC;
@@ -262,7 +262,7 @@ void process_packet(){
 							}
 							printf("\n");
 							#endif
-							uart_put('P');
+							//uart_put('P');
 							break;
 					}
 					
@@ -394,6 +394,8 @@ int main(void)
 	received_data = true;
 	BlinkLed = false;
 	USBDisconnected = false;
+	time_preprofile = 0;
+	time_postprofile = 0;
 	uart_init();
 	gpio_init();
 	timers_init();
@@ -437,12 +439,13 @@ int main(void)
 			time_cur = get_time_us();
 			printf("C: %lu, T: %luus\n",(uint32_t)(1 << 15), (time_cur - time_prev) >> 18);
 			time_prev = time_cur;
+			printf("Prof: %luus\n", (time_postprofile - time_preprofile));
 		}
 		process_packet();
 
  		if (check_timer_flag()) 
 		{
-			/*
+			
 
 			counter++;
 			if(ENABLE_1HZ_PROFILING == 1 && counter%(HZ1_CYCLES) == 6){
@@ -508,7 +511,7 @@ int main(void)
 				nrf_gpio_pin_toggle(BLUE);
 			}
 
-			//run_control();
+			run_control();
 
 			// adc_request_sample();
 			// read_baro();
@@ -518,7 +521,7 @@ int main(void)
 			// printf("%6d %6d %6d | ", phi, theta, psi);
 			// printf("%6d %6d %6d | ", sp, sq, sr);
 			// printf("%4d | %4ld | %6ld \n", bat_volt, temperature, pressure);=
-			*/
+			
  			clear_timer_flag();
  		}
 
